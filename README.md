@@ -29,10 +29,12 @@ Mientras mantenés Shift + Alt, sumá otra tecla. El cambio va más lento y cae 
 | Teclas | Cómo cambia el Stroke |
 |---|---|
 | Shift + Alt | Rápido, en proporción al tamaño |
-| Shift + Alt + **Ctrl** | De a 1 pt |
-| Shift + Alt + **Espacio** | De a 0,5 pt |
+| Shift + Alt + **Ctrl** | De a 1 |
+| Shift + Alt + **Espacio** | De a 0,5 |
 
-Los pasos son siempre en puntos, aunque tu documento muestre el Stroke en otra unidad, como milímetros. El atajo no sube el Stroke de 400 pt. El grosor final de la línea puede ser mayor, porque el pincel lo multiplica.
+Los pasos van en la unidad que Illustrator usa para el Stroke, para el pincel y para cualquier otra herramienta. Si la tuya es mm, van de a 1 mm y de a 0,5 mm, sin decimales raros. La unidad se cambia en Illustrator: Edit → Preferences → Units → Stroke.
+
+El atajo no sube el Stroke de 400 pt, aunque trabajes en otra unidad. El grosor final de la línea puede ser mayor, porque el pincel lo multiplica.
 
 ## Activar o desactivar el arranque con Windows
 

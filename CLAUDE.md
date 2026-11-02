@@ -1,6 +1,6 @@
 # Illustrator: atajo de pincel
 
-Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 pt y sumando Espacio de a 0,5 pt. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
+Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
 
 ## Objetivo actual
 
@@ -36,8 +36,9 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 - El cursor queda quieto con `BlockInput "MouseMove"` y el movimiento se lee por Raw Input (`WM_INPUT`). Devolverlo a su lugar con `SetCursorPos` lo hacía temblar.
 - Lo que no sirve para leer el pincel elegido: su ventana no expone controles por UI Automation y una línea creada por script no toma el pincel. El círculo lo dibuja Illustrator en el lienzo, no es un cursor de Windows.
 - Habla con Illustrator por COM (`ComObjActive("Illustrator.Application")` + `DoJavaScript`), y necesita un documento abierto. Si Illustrator corre como administrador y el atajo no, COM falla y el script no avisa: está en la sección de problemas del README.
-- El Ctrl y Espacio van en puntos aunque el documento muestre otra unidad. El tope `MAXIMO_STROKE` es de 400 pt sobre el Stroke, no sobre el grosor final, que depende del pincel.
-- Detecta Illustrator por `ahk_exe Illustrator.exe`, que no depende de la versión.
+- Ctrl y Espacio van de a 1 y 0,5 en la unidad de la preferencia `strokeUnits` de Illustrator, que comparten el pincel y las demás herramientas. `defaultStrokeWidth` siempre es en pt. El tope `MAXIMO_STROKE` es de 400 pt sobre el Stroke, no sobre el grosor final, que depende del pincel.
+- Detecta Illustrator por `ahk_exe Illustrator.exe` y su ventana principal por `ahk_class illustrator`, para no actuar con un diálogo abierto. La clase solo se comprobó en Illustrator 2026.
+- Si una tecla queda bloqueada a medias, Windows la cree apretada y Illustrator se traba (Ctrl trabado hace que Esc abra Inicio). Toda salida de `Ajustar` tiene que dejar soltadas Shift, Alt, Ctrl y Espacio. Para diagnosticar: crear `%TEMP%\pincel-atajo.log` vacío y el atajo registra ahí cada gesto.
 
 ## Pruebas
 

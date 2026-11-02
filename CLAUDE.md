@@ -29,5 +29,5 @@ Instalador `.exe` guiado, publicado en GitHub Releases. Está terminado cuando, 
 ## Pruebas
 
 - `AutoHotkey64.exe /ErrorStdOut /Validate pincel-illustrator.ahk` valida la sintaxis.
-- El gesto real (Shift + Alt apretados, en Illustrator) solo lo puede probar una persona: pedírselo a la dueña del repo y no darlo por probado sin eso.
+- El gesto real (Shift + Alt apretados, en Illustrator) solo lo puede probar una persona: pedir esa prueba y no darlo por probado sin ella.
 - Instalar y desinstalar: probarlo en Windows Sandbox, que arranca limpio y sin AutoHotkey. Illustrator no está ahí, así que cubre instalación, arranque y desinstalación, no el gesto.

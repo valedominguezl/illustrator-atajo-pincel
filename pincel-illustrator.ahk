@@ -9,10 +9,10 @@
 ;@Ahk2Exe-SetName Atajo de pincel para Illustrator
 DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr") ; píxeles reales en los dos monitores
 A_MenuMaskKey := "vkE8"
-PASO := 4            ; movimiento por cada paso
-FACTOR := 1.06       ; cada paso agranda/achica un 6 % (fino en tamaños chicos, rápido en grandes)
-PASO_FIJO := 12      ; movimiento por cada paso con Ctrl o Espacio: más lento, para poder frenar en el valor justo
-MAXIMO_STROKE := 1000 ; límite del campo Stroke
+PASO := 24           ; movimiento por cada paso
+FACTOR := 1.03       ; cada paso agranda/achica un 3 % (fino en tamaños chicos, rápido en grandes)
+PASO_FIJO := 60      ; movimiento por cada paso con Ctrl o Espacio: más lento, para poder frenar en el valor justo
+MAXIMO_STROKE := 400 ; tope del Stroke, en pt
 ajustando := false
 movido := 0
 ultimoAbsoluto := ""

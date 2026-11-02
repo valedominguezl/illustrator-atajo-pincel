@@ -36,7 +36,7 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 - El cursor queda quieto con `BlockInput "MouseMove"` y el movimiento se lee por Raw Input (`WM_INPUT`). Devolverlo a su lugar con `SetCursorPos` lo hacía temblar.
 - Lo que no sirve para leer el pincel elegido: su ventana no expone controles por UI Automation y una línea creada por script no toma el pincel. El círculo lo dibuja Illustrator en el lienzo, no es un cursor de Windows.
 - Habla con Illustrator por COM (`ComObjActive("Illustrator.Application")` + `DoJavaScript`), y necesita un documento abierto. Si Illustrator corre como administrador y el atajo no, COM falla y el script no avisa: está en la sección de problemas del README.
-- El Ctrl y Espacio van en puntos aunque el documento muestre otra unidad.
+- El Ctrl y Espacio van en puntos aunque el documento muestre otra unidad. El tope `MAXIMO_STROKE` es de 400 pt sobre el Stroke, no sobre el grosor final, que depende del pincel.
 - Detecta Illustrator por `ahk_exe Illustrator.exe`, que no depende de la versión.
 
 ## Pruebas

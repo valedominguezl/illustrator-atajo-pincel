@@ -32,7 +32,7 @@ Mientras mantenés Shift + Alt, sumá otra tecla. El cambio va más lento y cae 
 | Shift + Alt + **Ctrl** | De a 1 pt |
 | Shift + Alt + **Espacio** | De a 0,5 pt |
 
-Los pasos son siempre en puntos, aunque tu documento muestre el Stroke en otra unidad, como milímetros.
+Los pasos son siempre en puntos, aunque tu documento muestre el Stroke en otra unidad, como milímetros. El atajo no sube el Stroke de 400 pt. El grosor final de la línea puede ser mayor, porque el pincel lo multiplica.
 
 ## Activar o desactivar el arranque con Windows
 

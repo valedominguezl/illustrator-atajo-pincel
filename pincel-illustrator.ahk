@@ -8,9 +8,27 @@ DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr") ; píxeles reales en l
 A_MenuMaskKey := "vkE8"
 PASO := 4         ; píxeles de movimiento por cada paso
 FACTOR := 1.06    ; cada paso agranda/achica un 6 % (fino en tamaños chicos, rápido en grandes)
-ARCHIVO_INI := A_ScriptDir "\pincel.ini" ; lo escribe el instalador; se cambia desde el ícono de la bandeja
-PINCEL_PT := LeerNumero("PincelPt", 5, 0.1, 1000)   ; tamaño del pincel caligráfico elegido («5 pt. Round»): el trazo lo multiplica. Para el Lápiz, 1.
+ARCHIVO_INI := A_ScriptDir "\pincel.ini"
+PINCEL_PT := LeerNumero("PincelPt", 5, 0.1, 1000)   ; tamaño del pincel: el trazo lo multiplica. Se mide del último trazo dibujado (ver LEER_ESTADO)
 MAXIMO_PT := LeerNumero("MaximoPt", 400, 0.1, 5000) ; grosor máximo de la línea
+
+; Illustrator no dice qué pincel está elegido, pero un trazo ya dibujado sí lo delata: lo que el pincel le suma a
+; su contorno, dividido por su Stroke, es el tamaño del pincel. Si no hay trazo, el tercer dato queda vacío.
+LEER_ESTADO := "
+(
+(function () {
+    if (!app.documents.length) return '';
+    var d = app.activeDocument, medido = '';
+    try {
+        var c = d.activeLayer.pathItems;
+        if (c.length && c[0].stroked && !c[0].closed && c[0].strokeWidth > 0) {
+            var g = c[0].geometricBounds, v = c[0].visibleBounds;
+            medido = Math.max((v[2] - v[0]) - (g[2] - g[0]), (v[1] - v[3]) - (g[1] - g[3])) / c[0].strokeWidth;
+        }
+    } catch (e) {}
+    return d.defaultStrokeWidth + '|' + d.activeView.zoom + '|' + medido;
+})()
+)"
 
 ;@Ahk2Exe-SetDescription Atajo de pincel para Illustrator
 ;@Ahk2Exe-SetName Atajo de pincel para Illustrator
@@ -44,9 +62,19 @@ NumeroValido(texto, minimo, maximo) {
     return IsNumber(v) && v + 0 >= minimo && v + 0 <= maximo ? v + 0 : ""
 }
 
+; La medición varía unas centésimas según la forma del trazo: solo cuenta si cambió de verdad
+ActualizarPincel(medido) {
+    global PINCEL_PT
+    v := NumeroValido(medido, 0.1, 1000)
+    if v = "" || Abs(v - PINCEL_PT) <= PINCEL_PT * 0.05
+        return
+    PINCEL_PT := Round(v, 2)
+    try IniWrite PINCEL_PT, ARCHIVO_INI, "Pincel", "PincelPt"
+}
+
 CambiarTamano(*) {
     global PINCEL_PT, MAXIMO_PT
-    pincel := PedirNumero("Tamaño de tu pincel en pt.`nEl pincel «5 pt. Round» es 5. Para el Lápiz, poné 1.", PINCEL_PT, 0.1, 1000)
+    pincel := PedirNumero("Tamaño de tu pincel en pt.`nEl atajo lo vuelve a medir solo cuando dibujás un trazo.", PINCEL_PT, 0.1, 1000)
     if pincel = ""
         return
     maximo := PedirNumero("Grosor máximo de la línea en pt.", MAXIMO_PT, pincel, 5000)
@@ -80,12 +108,13 @@ Ajustar() {
         return
     try {
         ai := ComObjActive("Illustrator.Application")
-        datos := StrSplit(ai.DoJavaScript("app.documents.length ? app.activeDocument.defaultStrokeWidth + '|' + app.activeDocument.activeView.zoom : ''"), "|")
+        datos := StrSplit(ai.DoJavaScript(LEER_ESTADO), "|")
     } catch
         return
-    if datos.Length < 2
+    if datos.Length < 3
         return
     ancho := datos[1] + 0, zoom := datos[2] + 0
+    ActualizarPincel(datos[3])
     activo := true
     CoordMode "Mouse", "Screen"
     MouseGetPos &x0, &y0

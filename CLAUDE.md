@@ -30,7 +30,8 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 
 ## Lo que el script da por hecho
 
-- `PINCEL_PT` es el tamaño del pincel: el grosor real es `PINCEL_PT` × Stroke, y el círculo sale de esa cuenta. Con otro pincel el círculo no coincide con la línea. Se elige en el asistente junto con `MAXIMO_PT` y se cambia desde el ícono de la bandeja; los dos se guardan en `pincel.ini`, junto al `.exe`.
+- `PINCEL_PT` es el tamaño del pincel: el grosor real es `PINCEL_PT` × Stroke, y el círculo sale de esa cuenta. Al apretar Shift + Alt se mide del último trazo de la capa activa (lo que el pincel suma al contorno ÷ Stroke), así que después de cambiar de pincel hay que dibujar un trazo para que coincida. Se guarda en `pincel.ini`, junto al `.exe`; `MAXIMO_PT` y el valor a mano se cambian desde el ícono de la bandeja.
+- Lo que ya se probó y no sirve para leer el pincel elegido (Illustrator 2026): su ventana no expone controles por UI Automation; una línea creada por script no toma el pincel; el círculo de vista previa lo dibuja Illustrator en el lienzo, no es un cursor de Windows, y desaparece al apretar Alt.
 - Habla con Illustrator por COM (`ComObjActive("Illustrator.Application")` + `DoJavaScript`), y necesita un documento abierto. Si Illustrator corre como administrador y el atajo no, COM falla y el script no avisa: está en la sección de problemas del README.
 - Detecta Illustrator por `ahk_exe Illustrator.exe`, que no depende de la versión.
 

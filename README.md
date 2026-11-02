@@ -10,9 +10,7 @@ Solo para Windows 10 u 11 de 64 bits.
 
 1. **[Bajá el instalador](https://github.com/valedominguezl/illustrator-atajo-pincel/releases/latest/download/Instalar-Atajo-de-Pincel.exe)** y abrilo.
 2. Si aparece «Windows protegió su PC», tocá **Más información** y después **Ejecutar de todos modos**. El aviso sale porque el instalador no tiene firma digital, un certificado pago. Más abajo explicamos de dónde sale.
-3. Seguí el asistente. Te va a preguntar dos cosas:
-   - **El tamaño de tu pincel.** Fijate en el panel Pinceles de Illustrator: el número del nombre es su tamaño (el pincel «5 pt. Round» es 5). Si usás el Lápiz, poné 1.
-   - **Si el atajo arranca con Windows.** Dejalo tildado para no tener que abrirlo cada vez.
+3. Seguí el asistente. Solo te pregunta **si el atajo arranca con Windows**: dejalo tildado para no tener que abrirlo cada vez.
 
 No hace falta instalar nada más ni tener permisos de administrador.
 
@@ -24,15 +22,19 @@ No hace falta instalar nada más ni tener permisos de administrador.
 
 Mientras el atajo está activo, vas a ver un ícono verde con una **H** junto al reloj de Windows (a veces queda escondido bajo la flechita **^**).
 
-## Cambiar el tamaño del pincel
+## Cuando cambiás de pincel
 
-Hacé doble clic en el ícono de la **H** junto al reloj. Te pide el tamaño de tu pincel y el grosor máximo de la línea, y queda guardado.
+No hay que configurar nada: el atajo calcula el tamaño de tu pincel midiendo lo último que dibujaste.
 
-Si cambiás de pincel en Illustrator, cambialo acá también: si no, el círculo rojo no va a coincidir con la línea.
+Illustrator no le avisa qué pincel elegiste, así que **después de cambiar de pincel dibujá una línea con él**. Hasta entonces, el círculo rojo sigue mostrando el tamaño del pincel anterior. Lo mismo pasa si lo último que dibujaste no tiene pincel, como una línea hecha con la Pluma.
+
+Con pinceles artísticos o de cerdas, el círculo es una aproximación.
+
+Si querés poner el tamaño a mano o cambiar el grosor máximo de la línea (400 pt de fábrica), hacé doble clic en el ícono de la **H** junto al reloj.
 
 ## Activar o desactivar el arranque con Windows
 
-Volvé a abrir el instalador y tildá o destildá la opción. Lo que ya elegiste se conserva.
+Volvé a abrir el instalador y tildá o destildá la opción.
 
 Si no arranca con Windows, lo abrís cuando quieras buscando **Atajo de pincel para Illustrator** en el menú Inicio. Para cerrarlo, clic derecho en el ícono de la **H** y **Salir**.
 
@@ -47,7 +49,7 @@ Abrí **Configuración → Aplicaciones → Aplicaciones instaladas**, buscá **
 - Tiene que haber un documento abierto en Illustrator y esa ventana tiene que estar al frente.
 - Si abrís Illustrator como administrador, el atajo no puede hablar con él y no avisa. Abrí Illustrator de la forma normal, sin «Ejecutar como administrador». Si lo tenés configurado para abrirse siempre así, sacale esa opción en Propiedades → Compatibilidad de su acceso directo.
 
-**El círculo rojo no coincide con la línea.** El tamaño cargado no es el de tu pincel. Cambialo como dice [más arriba](#cambiar-el-tamaño-del-pincel). El atajo no puede averiguar solo qué pincel estás usando.
+**El círculo rojo no coincide con la línea.** Dibujá una línea con tu pincel y volvé a probar: el atajo mide lo último que dibujaste. Más detalles en [Cuando cambiás de pincel](#cuando-cambiás-de-pincel).
 
 **El tamaño salta el doble o el círculo parpadea.** Probablemente hay dos copias reaccionando a la vez. Pasa si antes usabas el script suelto `pincel-illustrator.ahk`: cerralo desde su ícono junto al reloj y sacá su acceso directo de la carpeta de Inicio (`Win + R`, escribí `shell:startup`).
 

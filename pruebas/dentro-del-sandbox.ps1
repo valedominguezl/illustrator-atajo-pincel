@@ -123,28 +123,14 @@ Anotar "`n== PC limpia"
 Comprobar 'sin AutoHotkey instalado' (-not (Get-Command AutoHotkey64 -ErrorAction SilentlyContinue) -and -not (Test-Path "$env:ProgramFiles\AutoHotkey") -and -not (Test-Path "$env:LOCALAPPDATA\Programs\AutoHotkey"))
 $fotoAntes = Foto
 
-Anotar "`n== Asistente: valores por defecto, validación y elección"
+Anotar "`n== Asistente"
 $proceso = Start-Process $Instalador -PassThru
 $w = Ventana 'TWizardForm'
 if (-not $w) { throw 'No apareció la ventana del asistente' }
 Start-Sleep 1
 Captura '1-bienvenida'
 Tocar $w 'Siguiente*'
-$campos = Campos $w
-Comprobar "la página de pincel propone 5 y 400 (hay $($campos.Count) campos)" ($campos.Count -eq 2 -and [W]::Texto($campos[0]) -eq '5' -and [W]::Texto($campos[1]) -eq '400')
-Captura '2-pincel'
-[W]::PonerTexto($campos[0], 'abc')
-Tocar $w 'Siguiente*'
-$aviso = Ventana '#32770' '*' 5
-Comprobar 'un tamaño inválido muestra un aviso' $aviso
-Captura '3-error-validacion'
-[W]::PostMessageW($aviso, 0x10, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null # WM_CLOSE
-Start-Sleep 1
-$campos = Campos $w
-Comprobar 'un tamaño inválido no deja avanzar' ($campos.Count -eq 2 -and [W]::Texto($campos[0]) -eq 'abc')
-[W]::PonerTexto($campos[0], '7,5')
-[W]::PonerTexto($campos[1], '300')
-Tocar $w 'Siguiente*'
+Comprobar 'el asistente no pregunta el tamaño del pincel' ((Campos $w).Count -eq 0)
 Captura '4-tareas' # sin tocar nada: la opción de arrancar con Windows tiene que venir tildada
 Tocar $w 'Siguiente*'
 Captura '5-listo'
@@ -158,8 +144,6 @@ Start-Sleep 2
 Anotar "`n== Después de instalar con el asistente"
 Comprobar 'el .exe está instalado' (Test-Path $exe)
 Comprobar 'el atajo quedó corriendo' (Corriendo)
-Comprobar 'se guardó el pincel elegido con punto decimal (7.5)' ((Get-Content $ini) -contains 'PincelPt=7.5')
-Comprobar 'se guardó el máximo elegido (300)' ((Get-Content $ini) -contains 'MaximoPt=300')
 Comprobar 'el arranque con Windows viene tildado: hay acceso directo en Inicio' (Test-Path $lnkInicio)
 Comprobar 'hay acceso directo en el menú Inicio' (Test-Path $lnkMenu)
 $destino = (New-Object -ComObject WScript.Shell).CreateShortcut($lnkInicio).TargetPath
@@ -167,7 +151,7 @@ Comprobar 'el acceso directo de Inicio apunta al .exe' ($destino -eq $exe)
 Comprobar 'figura en Aplicaciones instaladas' (Test-Path $uninstallKey)
 Comprobar 'no hay diálogos de error del atajo' (-not (Ventana '*' 'PincelIllustrator*' 1))
 
-Anotar "`n== El .exe lee el .ini y se puede cambiar desde la bandeja"
+Anotar "`n== Los valores de fábrica se cambian desde la bandeja y sobreviven al reinicio del atajo"
 # Mensaje que el ícono de la bandeja le manda al atajo con doble clic
 $oculta = [W]::FindWindowW('AutoHotkey', [NullString]::Value)
 Anotar "      ventana oculta del atajo: $oculta '$([W]::Texto($oculta))'"
@@ -179,15 +163,23 @@ if (-not $v) {
     foreach ($x in [W]::Superiores()) { Anotar "      [$([W]::Clase($x))] $([W]::Texto($x))" }
 }
 if ($v) {
-    Comprobar 'muestra el 7.5 que leyó del .ini' ([W]::Texto((Campos $v)[0]) -eq '7.5')
+    Comprobar 'propone el pincel de fábrica (5)' ([W]::Texto((Campos $v)[0]) -eq '5')
     Captura '7-bandeja'
     [W]::PonerTexto((Campos $v)[0], '9,25')
     Tocar $v 'OK'
     $v = Ventana '*' 'Atajo de pincel' 5
-    Comprobar 'muestra el 300 que leyó del .ini' ([W]::Texto((Campos $v)[0]) -eq '300')
+    Comprobar 'propone el máximo de fábrica (400)' ([W]::Texto((Campos $v)[0]) -eq '400')
     Tocar $v 'OK'
     Start-Sleep 1
     Comprobar 'guardó el cambio con punto decimal (9.25)' ((Get-Content $ini) -match 'PincelPt=9.25')
+    Stop-Process -Name PincelIllustrator -Force
+    Start-Sleep 1
+    Start-Process $exe
+    Start-Sleep 2
+    [W]::PostMessageW([W]::FindWindowW('AutoHotkey', [NullString]::Value), 0x404, [IntPtr]0x404, [IntPtr]0x203) | Out-Null
+    $v = Ventana '*' 'Atajo de pincel' 8
+    Comprobar 'al volver a abrir lee 9.25 del .ini' ($v -and [W]::Texto((Campos $v)[0]) -eq '9.25')
+    if ($v) { Tocar $v 'Cancel' }
 }
 
 Anotar "`n== Arranque: el acceso directo de Inicio levanta el atajo"
@@ -207,11 +199,11 @@ Comprobar 'conserva el tamaño cambiado (9.25)' ((Get-Content $ini) -match 'Pinc
 Comprobar 'el .exe corre de nuevo y es otro proceso' ((Corriendo) -and (Get-Process PincelIllustrator).Id -ne $antes)
 Comprobar 'una sola copia corriendo' (@(Get-Process PincelIllustrator).Count -eq 1)
 
-Anotar "`n== Volver a activar el arranque por instalación silenciosa con valores"
-$codigo = Instalar @('/TASKS="arranque"', '/PINCEL=3', '/MAXIMO=120')
+Anotar "`n== Volver a activar el arranque"
+$codigo = Instalar @('/TASKS="arranque"')
 Comprobar "el instalador termina bien (código $codigo)" ($codigo -eq 0)
 Comprobar 'vuelve el acceso directo de Inicio' (Test-Path $lnkInicio)
-Comprobar 'toma el pincel pasado (3)' ((Get-Content $ini) -match 'PincelPt=3$')
+Comprobar 'sigue conservando el tamaño (9.25)' ((Get-Content $ini) -match 'PincelPt=9.25')
 
 Anotar "`n== Desinstalar con el atajo corriendo"
 Comprobar 'está corriendo antes de desinstalar' (Corriendo)
@@ -226,10 +218,9 @@ $diferencias = Compare-Object $fotoAntes (Foto)
 Comprobar 'archivos y registro iguales a los de antes de instalar' (-not $diferencias)
 $diferencias | ForEach-Object { Anotar "      $($_.SideIndicator) $($_.InputObject)" }
 
-Anotar "`n== Desinstalar con el .ini reescrito y el arranque apagado"
+Anotar "`n== Desinstalar sin .ini y con el arranque apagado"
 Instalar @('/TASKS=""') | Out-Null
 Stop-Process -Name PincelIllustrator -Force -ErrorAction SilentlyContinue
-Add-Content $ini 'Extra=1'
 $codigo = Desinstalar
 Comprobar "el desinstalador termina bien (código $codigo)" ($codigo -eq 0)
 $diferencias = Compare-Object $fotoAntes (Foto)

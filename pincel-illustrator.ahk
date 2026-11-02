@@ -2,6 +2,7 @@
 #SingleInstance Force
 ; Illustrator: Shift + Alt + mover el mouse (sin hacer clic) = tamaño del pincel, como Alt + clic derecho en Photoshop.
 ; Derecha agranda, izquierda achica. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke (pt, mm…).
+; Apretando M durante el gesto, Illustrator pasa el Stroke de pt a mm y viceversa.
 ; Cambia el grosor de trazo de lo próximo que dibujes, igual que el campo «Stroke» de arriba, y el círculo de vista
 ; previa del propio Illustrator se actualiza solo. Por eso Alt no le llega a Illustrator: lo escondería.
 
@@ -18,6 +19,7 @@ UNIDADES := Map(0, [72, "in"], 1, [72 / 25.4, "mm"], 2, [1, "pt"], 3, [12, "pc"]
 ; Diagnóstico: solo registra si ya existe este archivo, que el instalador no crea
 REGISTRO := A_Temp "\pincel-atajo.log"
 ajustando := false
+cambiarUnidad := false
 movido := 0
 ultimoAbsoluto := ""
 
@@ -34,6 +36,9 @@ A_TrayMenu.Add("Salir", (*) => ExitApp())
 *LControl::
 *RControl::
 *Space:: return
+*m:: {
+    global cambiarUnidad := true
+}
 ; Solo en la ventana principal: con un diálogo abierto, Illustrator no responde hasta cerrarlo.
 ; Alt+arrastrar mientras dibujás es de Illustrator (cerrar el trazo)
 #HotIf WinActive("ahk_class illustrator ahk_exe Illustrator.exe") && !GetKeyState("LButton", "P")
@@ -44,7 +49,7 @@ A_TrayMenu.Add("Salir", (*) => ExitApp())
 #HotIf
 
 Ajustar() {
-    global ajustando, movido, ultimoAbsoluto
+    global ajustando, movido, ultimoAbsoluto, cambiarUnidad
     if ajustando
         return
     Anotar("inicio " A_ThisHotkey " " TeclasLogicas())
@@ -63,6 +68,7 @@ Ajustar() {
     }
     ancho := datos[1] + 0
     unidad := UNIDADES.Has(datos[2] + 0) ? UNIDADES[datos[2] + 0] : UNIDADES[2]
+    cambiarUnidad := false
     ajustando := true
     ; Si Alt llegó antes que Shift, se lo retira a Illustrator para que vuelva la vista previa
     SoltarTeclas(["LAlt", "RAlt"])
@@ -77,6 +83,17 @@ Ajustar() {
         if GetKeyState("LButton", "P") { ; Shift + Alt + arrastrar es de Illustrator: se le devuelve Alt
             seSolto := false
             break
+        }
+        if cambiarUnidad {
+            cambiarUnidad := false
+            nueva := unidad[2] = "mm" ? 2 : 1
+            if IllustratorResponde()
+                try {
+                    ai.DoJavaScript("app.preferences.setIntegerPreference('strokeUnits', " nueva ")")
+                    unidad := UNIDADES[nueva]
+                    movido := 0
+                    Etiqueta(ancho, modo, unidad, x0, y0)
+                }
         }
         nuevoModo := GetKeyState("Control", "P") ? 1 : GetKeyState("Space", "P") ? 0.5 : 0
         if (nuevoModo != modo) {

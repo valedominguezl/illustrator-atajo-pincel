@@ -32,7 +32,13 @@ Mientras mantenés Shift + Alt, sumá otra tecla. El cambio va más lento y cae 
 | Shift + Alt + **Ctrl** | De a 1 |
 | Shift + Alt + **Espacio** | De a 0,5 |
 
-Los pasos van en la unidad que Illustrator usa para el Stroke, para el pincel y para cualquier otra herramienta. Si la tuya es mm, van de a 1 mm y de a 0,5 mm, sin decimales raros. La unidad se cambia en Illustrator: Edit → Preferences → Units → Stroke.
+Los pasos van en la unidad que Illustrator usa para el Stroke, con el pincel y con cualquier otra herramienta. En mm van de a 1 mm y de a 0,5 mm; en pt, de a 1 pt y de a 0,5 pt.
+
+## Cambiar entre puntos y milímetros
+
+Mientras mantenés Shift + Alt, apretá **M**: el Stroke pasa de pt a mm y viceversa. El grosor de la línea no cambia, solo la unidad en que se mide. La opción queda guardada en Illustrator (Edit → Preferences → Units → Stroke) hasta que la vuelvas a cambiar.
+
+## Tope
 
 El atajo no sube el Stroke de 400 pt, aunque trabajes en otra unidad. El grosor final de la línea puede ser mayor, porque el pincel lo multiplica.
 

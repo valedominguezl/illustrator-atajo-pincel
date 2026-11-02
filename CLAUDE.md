@@ -1,6 +1,6 @@
 # Illustrator: atajo de pincel
 
-Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
+Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke. Apretando M durante el gesto, el Stroke alterna entre pt y mm. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
 
 ## Objetivo actual
 

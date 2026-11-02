@@ -70,6 +70,8 @@ Abrí **Configuración → Aplicaciones → Aplicaciones instaladas**, buscá **
 - Tiene que haber un documento abierto en Illustrator y esa ventana tiene que estar al frente.
 - Si abrís Illustrator como administrador, el atajo no puede hablar con él y no avisa. Abrí Illustrator de la forma normal, sin «Ejecutar como administrador». Si lo tenés configurado para abrirse siempre así, sacale esa opción en Propiedades → Compatibilidad de su acceso directo.
 
+**En un documento nuevo, el pincel no toma el tamaño.** Es una limitación de Illustrator: hasta que dibujás el primer trazo con el pincel, ignora el tamaño que le pone el atajo. Dibujá una línea cualquiera y bórrala con la tecla Suprimir: desde ahí funciona en todo el documento, aunque cambies de herramienta. Si en cambio la deshacés con Ctrl + Z, vuelve a pasar. Mientras el documento está vacío, el atajo te lo recuerda junto al cursor.
+
 **No veo el círculo mientras ajusto.** Apretá Shift antes que Alt. El círculo lo dibuja Illustrator: si tu versión o tu herramienta no lo muestran, el Stroke igual cambia y podés guiarte por la medida que aparece junto al cursor.
 
 **El número junto al cursor no coincide con el grosor de la línea.** Es normal: muestra el Stroke, y el pincel lo multiplica. Con un pincel de 3 pt y Stroke de 10 pt, la línea sale de 30 pt. El círculo sí muestra el grosor final.

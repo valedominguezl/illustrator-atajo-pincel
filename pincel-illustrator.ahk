@@ -29,6 +29,7 @@ UNIDADES := Map(0, [72, "in"], 1, [72 / 25.4, "mm"], 2, [1, "pt"], 3, [12, "pc"]
 ; Diagnóstico: solo registra si ya existe este archivo, que el instalador no crea
 REGISTRO := A_Temp "\pincel-atajo.log"
 ajustando := false
+avisoPincel := ""
 movido := 0
 ultimoAbsoluto := ""
 ; El simulador de la ventana de ajustes usa el mismo gesto, sin Illustrator
@@ -65,7 +66,7 @@ if !(A_Args.Length && A_Args[1] = "/arranque")
 #HotIf
 
 Ajustar() {
-    global ajustando, movido, ultimoAbsoluto, simAncho, simUnidad
+    global ajustando, movido, ultimoAbsoluto, simAncho, simUnidad, avisoPincel
     if ajustando
         return
     Anotar("inicio " A_ThisHotkey " " TeclasLogicas())
@@ -76,7 +77,7 @@ Ajustar() {
     else if IllustratorResponde() {
         try {
             ai := ComObjActive("Illustrator.Application")
-            datos := StrSplit(ai.DoJavaScript("app.documents.length ? app.activeDocument.defaultStrokeWidth + '|' + app.preferences.getIntegerPreference('strokeUnits') : ''"), "|")
+            datos := StrSplit(ai.DoJavaScript("app.documents.length ? app.activeDocument.defaultStrokeWidth + '|' + app.preferences.getIntegerPreference('strokeUnits') + '|' + app.activeDocument.pathItems.length : ''"), "|")
         } catch as e
             Anotar("error al leer: " e.Message)
     } else
@@ -87,6 +88,9 @@ Ajustar() {
     }
     ancho := datos[1] + 0
     unidad := UNIDADES.Has(datos[2] + 0) ? UNIDADES[datos[2] + 0] : UNIDADES[2]
+    ; En un documento sin trazos, el Pincel ignora el Stroke que se le pone por script hasta su primer trazo (Ctrl + Z
+    ; lo vuelve a ese estado). No se puede forzar sin dibujar: un clic automático con borrado hizo cerrar Illustrator.
+    avisoPincel := datos.Length >= 3 && datos[3] = 0 ? "Documento vacío: el pincel toma este tamaño después de tu primer trazo" : ""
     ajustando := true
     ; Si Alt llegó antes que Shift, se lo retira a Illustrator para que vuelva la vista previa
     SoltarTeclas(["LAlt", "RAlt"])
@@ -226,6 +230,8 @@ Etiqueta(ancho, modo, unidad, x, y) {
         texto .= Format("  ·  {:.2f} pt", ancho)
     if modo
         texto .= (modo = 1 ? "  ·  de a 1 " : "  ·  de a 0,5 ") unidad[2]
+    if avisoPincel != ""
+        texto .= "`n" avisoPincel
     ToolTip texto, x + 24, y + 24
 }
 

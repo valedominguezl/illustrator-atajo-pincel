@@ -146,7 +146,14 @@ Captura '4-tareas' # sin tocar nada: la opción de arrancar con Windows tiene qu
 Tocar $w 'Siguiente*'
 Captura '5-listo'
 Tocar $w 'Instalar*'
-Start-Sleep 5
+$simulador = Ventana '*' $nombre 30
+Comprobar 'durante la instalación se abre el simulador de velocidad' $simulador
+if ($simulador) {
+    Start-Sleep 1
+    Captura '5b-simulador'
+    Tocar $simulador 'Cancelar'
+}
+Start-Sleep 3
 Captura '6-fin'
 Tocar $w 'Finalizar*' # si todavía está instalando, espera
 $proceso.WaitForExit(30000) | Out-Null

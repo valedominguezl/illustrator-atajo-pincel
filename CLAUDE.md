@@ -22,7 +22,7 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 
 ## Decisiones de diseño
 
-- Compilar con **Ahk2Exe** a un `.exe` autónomo, así la otra persona no necesita instalar AutoHotkey. Elimina el primer punto de la lista.
+- Compilar con **Ahk2Exe** a un `.exe` autónomo, así la otra persona no necesita instalar AutoHotkey. El `.exe` se publica en Releases, no se commitea. El README explica cómo cambiar velocidades y teclas desde el código.
 - Asistente con **Inno Setup**, instalación por usuario y sin permisos de administrador.
 - Compilar en **GitHub Actions** al crear un tag y adjuntar el instalador a la Release, para que cualquiera pueda ver de qué código sale.
 - El instalador sale sin firma digital: Windows SmartScreen va a avisar. El README explica cómo seguir ("Más información" → "Ejecutar de todos modos").
@@ -39,7 +39,7 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 - Ctrl y Bloq Mayús van de a 1 y 0,5 en la unidad de la preferencia `strokeUnits` de Illustrator, que comparten el pincel y las demás herramientas. `defaultStrokeWidth` siempre es en pt. El tope `MAXIMO_STROKE` es de 400 pt sobre el Stroke, no sobre el grosor final, que depende del pincel.
 - Con un objeto seleccionado, `defaultStrokeWidth` lee y cambia el Stroke de ese objeto, igual que el campo de arriba.
 - Detecta Illustrator por `ahk_exe Illustrator.exe` y su ventana principal por `ahk_class illustrator`, para no actuar con un diálogo abierto. La clase solo se comprobó en Illustrator 2026.
-- Si una tecla queda bloqueada a medias, Windows la cree apretada y Illustrator se traba (Ctrl trabado hace que Esc abra Inicio). Toda salida de `Ajustar` tiene que dejar soltadas Shift, Alt y Ctrl. El arranque con Windows y el final del instalador pasan `/arranque` al `.exe`; abrirlo a mano muestra los ajustes. Para diagnosticar: crear `%TEMP%\pincel-atajo.log` vacío y el atajo registra ahí cada gesto.
+- Si una tecla queda bloqueada a medias, Windows la cree apretada y Illustrator se traba (Ctrl trabado hace que Esc abra Inicio). Toda salida de `Ajustar` tiene que dejar soltadas Shift, Alt y Ctrl. El arranque con Windows y el final del instalador pasan `/arranque` al `.exe`; abrirlo a mano muestra los ajustes. Durante la instalación corre con `/configurar`: el simulador de velocidad, que usa el mismo gesto sin Illustrator, y termina al cerrar la ventana. Para diagnosticar: crear `%TEMP%\pincel-atajo.log` vacío y el atajo registra ahí cada gesto.
 
 ## Pruebas
 

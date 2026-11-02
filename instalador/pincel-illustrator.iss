@@ -56,6 +56,8 @@ Name: "{autoprograms}\{#Nombre}"; Filename: "{app}\{#Exe}"
 Name: "{userstartup}\{#Nombre}"; Filename: "{app}\{#Exe}"; Parameters: "/arranque"; Tasks: arranque
 
 [Run]
+; El simulador de velocidad es un paso de la instalación: sigue al cerrar la ventana
+Filename: "{app}\{#Exe}"; Parameters: "/configurar"; StatusMsg: "Elegí la velocidad en la ventana que se abrió. Al cerrarla, sigue la instalación."; Check: not WizardSilent
 Filename: "{app}\{#Exe}"; Parameters: "/arranque"; Description: "Activar el atajo ahora"; Flags: nowait postinstall
 
 [UninstallDelete]

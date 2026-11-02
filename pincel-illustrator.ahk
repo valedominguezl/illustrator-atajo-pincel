@@ -31,6 +31,12 @@ REGISTRO := A_Temp "\pincel-atajo.log"
 ajustando := false
 movido := 0
 ultimoAbsoluto := ""
+; El simulador de la ventana de ajustes usa el mismo gesto, sin Illustrator
+ventanaAjustes := 0
+areaSimulador := 0
+simAncho := 40
+simUnidad := 2
+configurando := A_Args.Length && A_Args[1] = "/configurar" ; lo abre el instalador: al cerrar la ventana, termina
 
 A_IconTip := "Atajo de pincel: Shift + Alt en Illustrator"
 A_TrayMenu.Delete()
@@ -39,7 +45,7 @@ A_TrayMenu.Add("Salir", Salir)
 A_TrayMenu.Default := "Ajustes…"
 ajustes := LeerAjustes()
 AplicarAjustes()
-; El arranque con Windows y el final del instalador pasan /arranque. Abrirlo a mano muestra los ajustes: así se ve que anda.
+; El arranque con Windows y el final del instalador pasan /arranque: abrirlo a mano muestra los ajustes, así se ve que anda.
 if !(A_Args.Length && A_Args[1] = "/arranque")
     AbrirAjustes()
 
@@ -51,7 +57,7 @@ if !(A_Args.Length && A_Args[1] = "/arranque")
 *RAlt:: return
 ; Solo en la ventana principal: con un diálogo abierto, Illustrator no responde hasta cerrarlo.
 ; Alt+arrastrar mientras dibujás es de Illustrator (cerrar el trazo)
-#HotIf WinActive("ahk_class illustrator ahk_exe Illustrator.exe") && !GetKeyState("LButton", "P")
+#HotIf (WinActive("ahk_class illustrator ahk_exe Illustrator.exe") || EnSimulador()) && !GetKeyState("LButton", "P")
 +LAlt::
 +RAlt::
 !LShift::
@@ -59,12 +65,15 @@ if !(A_Args.Length && A_Args[1] = "/arranque")
 #HotIf
 
 Ajustar() {
-    global ajustando, movido, ultimoAbsoluto
+    global ajustando, movido, ultimoAbsoluto, simAncho, simUnidad
     if ajustando
         return
     Anotar("inicio " A_ThisHotkey " " TeclasLogicas())
+    simulando := EnSimulador()
     datos := []
-    if IllustratorResponde() {
+    if simulando
+        datos := [simAncho, simUnidad]
+    else if IllustratorResponde() {
         try {
             ai := ComObjActive("Illustrator.Application")
             datos := StrSplit(ai.DoJavaScript("app.documents.length ? app.activeDocument.defaultStrokeWidth + '|' + app.preferences.getIntegerPreference('strokeUnits') : ''"), "|")
@@ -100,7 +109,12 @@ Ajustar() {
         unidadApretada := estaApretada
         if cambio {
             nueva := unidad[2] = "mm" ? 2 : 1
-            if IllustratorResponde()
+            if simulando {
+                simUnidad := nueva
+                unidad := UNIDADES[nueva]
+                movido := 0
+                Etiqueta(ancho, modo, unidad, x0, y0)
+            } else if IllustratorResponde()
                 try {
                     ai.DoJavaScript("app.preferences.setIntegerPreference('strokeUnits', " nueva ")")
                     unidad := UNIDADES[nueva]
@@ -119,7 +133,10 @@ Ajustar() {
             movido -= pasos * porPaso
             ancho := SiguienteAncho(ancho, pasos, modo, unidad[1])
             Etiqueta(ancho, modo, unidad, x0, y0)
-            if IllustratorResponde()
+            if simulando {
+                simAncho := ancho
+                DibujarSimulador()
+            } else if IllustratorResponde()
                 try ai.DoJavaScript("app.activeDocument.defaultStrokeWidth = " ancho)
         }
         Sleep 5
@@ -289,12 +306,35 @@ NombreDeTecla(tecla) {
             return nombre
 }
 
+EnSimulador() => ventanaAjustes && WinActive("ahk_id " ventanaAjustes)
+
+; Un círculo que crece hasta llenar el recuadro al llegar al tope. No es a tamaño real: sirve para sentir la velocidad.
+DibujarSimulador() {
+    if !areaSimulador
+        return
+    areaSimulador.GetPos(, , &w, &h)
+    hdc := DllCall("GetDC", "ptr", areaSimulador.Hwnd, "ptr")
+    r := Buffer(16), NumPut("int", 0, "int", 0, "int", w, "int", h, r)
+    DllCall("FillRect", "ptr", hdc, "ptr", r, "ptr", DllCall("GetStockObject", "int", 0, "ptr"))
+    d := Max(3, Round(simAncho / MAXIMO_STROKE * (h - 12)))
+    pincel := DllCall("CreateSolidBrush", "uint", 0x2A2AFF, "ptr")
+    anterior := DllCall("SelectObject", "ptr", hdc, "ptr", pincel, "ptr")
+    x := (w - d) // 2, y := (h - d) // 2
+    DllCall("Ellipse", "ptr", hdc, "int", x, "int", y, "int", x + d, "int", y + d)
+    DllCall("SelectObject", "ptr", hdc, "ptr", anterior, "ptr")
+    DllCall("DeleteObject", "ptr", pincel)
+    DllCall("ReleaseDC", "ptr", areaSimulador.Hwnd, "ptr", hdc)
+}
+
+; Lo que se toca rige enseguida, así el simulador lo refleja. Cancelar vuelve a como estaba.
 AbrirAjustes(*) {
+    global ventanaAjustes, areaSimulador
     static ventana := 0
     if ventana {
         ventana.Show()
         return
     }
+    respaldo := ajustes.Clone()
     nombres := []
     for nombre in ["Ctrl", "Bloq Mayús", "Tab", "Espacio"]
         nombres.Push(nombre)
@@ -306,13 +346,19 @@ AbrirAjustes(*) {
     ventana := Gui(, "Atajo de pincel para Illustrator")
     ventana.SetFont("s10", "Segoe UI")
     ventana.SetFont("bold")
-    ventana.AddText("w400", "Sensibilidad")
+    ventana.AddText("w400", "Probá la velocidad")
+    ventana.SetFont("norm")
+    ventana.AddText("w400 cGray", "Con esta ventana al frente, apretá Shift, después Alt, y mové el mouse sin hacer clic. Sumá las teclas de abajo para probar cada modo. No hace falta tener Illustrator abierto.")
+    areaSimulador := ventana.AddText("w400 h130 Border")
+    ventana.SetFont("bold")
+    ventana.AddText("xm w400 y+16", "Sensibilidad")
     ventana.SetFont("norm")
     ventana.AddText("w400 cGray", "A la izquierda, más lento. A la derecha, más rápido.")
     deslizadores := Map()
     for clave, texto in Map("Libre", "Libre", "MedioPaso", "De a 0,5", "UnPaso", "De a 1") {
         ventana.AddText("xm w90 y+12", texto)
-        deslizadores[clave] := ventana.AddSlider("x+8 yp-4 w300 Range0-100 TickInterval50", ajustes[clave])
+        deslizadores[clave] := ventana.AddSlider("x+8 yp-4 w300 Range0-100 TickInterval50 AltSubmit", ajustes[clave])
+        deslizadores[clave].OnEvent("Change", SensibilidadCambiada.Bind(clave))
     }
     ventana.SetFont("bold")
     ventana.AddText("xm w400 y+20", "Teclas que se suman a Shift + Alt")
@@ -322,15 +368,33 @@ AbrirAjustes(*) {
         ventana.AddText("xm w170 y+12", texto)
         listas[clave] := ventana.AddDropDownList("x+8 yp-4 w120 r12", nombres)
         listas[clave].Text := NombreDeTecla(ajustes[clave])
+        listas[clave].OnEvent("Change", TeclaCambiada.Bind(clave))
     }
     ventana.AddText("xm w400 y+16 cGray", "Shift + Alt queda fijo: otras teclas cambian de herramienta en Illustrator y esconden el círculo.")
 
-    Cerrar(*) {
+    SensibilidadCambiada(clave, control, *) {
+        ajustes[clave] := control.Value
+    }
+    TeclaCambiada(clave, control, *) {
+        ajustes[clave] := TECLAS[control.Text]
+        AplicarAjustes()
+    }
+    Cerrar() {
+        global ventanaAjustes, areaSimulador
         ventana.Destroy()
         ventana := 0
+        ventanaAjustes := 0
+        areaSimulador := 0
+        if configurando
+            ExitApp
+    }
+    Cancelar(*) {
+        global ajustes
+        ajustes := respaldo
+        AplicarAjustes()
+        Cerrar()
     }
     Guardar(*) {
-        global ajustes
         elegidas := Map()
         for clave, lista in listas {
             if elegidas.Has(lista.Text) {
@@ -339,36 +403,41 @@ AbrirAjustes(*) {
             }
             elegidas[lista.Text] := true
         }
-        nuevos := Map()
         for clave, deslizador in deslizadores
-            nuevos[clave] := deslizador.Value
+            ajustes[clave] := deslizador.Value
         for clave, lista in listas
-            nuevos[clave] := TECLAS[lista.Text]
+            ajustes[clave] := TECLAS[lista.Text]
+        AplicarAjustes()
         try {
-            for clave, deslizador in deslizadores
-                IniWrite nuevos[clave], ARCHIVO_INI, "Sensibilidad", clave
-            for clave, lista in listas
-                IniWrite nuevos[clave], ARCHIVO_INI, "Teclas", clave
+            for clave in deslizadores
+                IniWrite ajustes[clave], ARCHIVO_INI, "Sensibilidad", clave
+            for clave in listas
+                IniWrite ajustes[clave], ARCHIVO_INI, "Teclas", clave
         } catch {
             MsgBox "No se pudo guardar en " ARCHIVO_INI, "Atajo de pincel para Illustrator", "Icon! Owner" ventana.Hwnd
             return
         }
-        ajustes := nuevos
-        AplicarAjustes()
         Cerrar()
     }
     Restablecer(*) {
-        for clave, deslizador in deslizadores
+        for clave, deslizador in deslizadores {
+            ajustes[clave] := FABRICA[clave]
             deslizador.Value := FABRICA[clave]
-        for clave, lista in listas
+        }
+        for clave, lista in listas {
+            ajustes[clave] := FABRICA[clave]
             lista.Text := NombreDeTecla(FABRICA[clave])
+        }
+        AplicarAjustes()
     }
     ventana.AddButton("xm y+16 w100 Default", "Guardar").OnEvent("Click", Guardar)
-    ventana.AddButton("x+8 w100", "Cancelar").OnEvent("Click", Cerrar)
+    ventana.AddButton("x+8 w100", "Cancelar").OnEvent("Click", Cancelar)
     ventana.AddButton("x+8 w184", "Valores de fábrica").OnEvent("Click", Restablecer)
-    ventana.OnEvent("Close", Cerrar)
-    ventana.OnEvent("Escape", Cerrar)
+    ventana.OnEvent("Close", Cancelar)
+    ventana.OnEvent("Escape", Cancelar)
     ventana.Show()
+    ventanaAjustes := ventana.Hwnd
+    SetTimer DibujarSimulador, -200
 }
 
 Salir(*) {

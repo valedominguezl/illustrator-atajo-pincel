@@ -10,7 +10,8 @@ Solo para Windows 10 u 11 de 64 bits.
 
 1. **[Bajá el instalador](https://github.com/valedominguezl/illustrator-atajo-pincel/releases/latest/download/Instalar-Atajo-de-Pincel.exe)** y abrilo.
 2. Si aparece «Windows protegió su PC», tocá **Más información** y después **Ejecutar de todos modos**. El aviso sale porque el instalador no tiene firma digital, un certificado pago. Más abajo explicamos de dónde sale.
-3. Seguí el asistente. Solo te pregunta **si el atajo arranca con Windows**: dejalo tildado para no tener que abrirlo cada vez.
+3. Seguí el asistente. Te pregunta **si el atajo arranca con Windows**: dejalo tildado para no tener que abrirlo cada vez.
+4. Durante la instalación se abre una ventana para **probar la velocidad**. Con esa ventana al frente, apretá Shift, después Alt, y mové el mouse. Ajustá a tu gusto y tocá **Guardar**. Después podés volver a cambiarla cuando quieras.
 
 No hace falta instalar nada más ni tener permisos de administrador.
 
@@ -40,7 +41,7 @@ Mientras mantenés Shift + Alt, apretá **A**: el Stroke pasa de pt a mm y vicev
 
 ## Cambiar la sensibilidad y las teclas
 
-Hacé doble clic en el ícono de la **H** junto al reloj de Windows (a veces está bajo la flechita **^**). Ahí podés cambiar la velocidad de cada modo y qué teclas se suman a Shift + Alt. **Valores de fábrica** vuelve todo a como estaba.
+Hacé doble clic en el ícono de la **H** junto al reloj de Windows (a veces está bajo la flechita **^**). Ahí podés probar el gesto, cambiar la velocidad de cada modo y elegir qué teclas se suman a Shift + Alt. **Valores de fábrica** vuelve todo a como estaba.
 
 Shift + Alt queda fijo, porque otras teclas cambian de herramienta en Illustrator y esconden el círculo.
 
@@ -78,6 +79,34 @@ Abrí **Configuración → Aplicaciones → Aplicaciones instaladas**, buscá **
 **El antivirus borra o bloquea el instalador.** A veces marcan por error a los programas hechos con AutoHotkey. Podés revisar el archivo en [VirusTotal](https://www.virustotal.com/) y, si confiás en él, permitirlo en tu antivirus.
 
 ¿Otra cosa? [Contanos acá](https://github.com/valedominguezl/illustrator-atajo-pincel/issues).
+
+## Si sabés un poco de programar
+
+Podés cambiar el atajo en tu propia PC. Es un solo archivo de [AutoHotkey v2](https://www.autohotkey.com/): [`pincel-illustrator.ahk`](pincel-illustrator.ahk).
+
+1. Instalá AutoHotkey v2: `winget install AutoHotkey.AutoHotkey`.
+2. Bajá este repositorio con **Code → Download ZIP** o `git clone`.
+3. **Cerrá el atajo instalado**: clic derecho en la **H** y **Salir**. Si quedan dos copias abiertas, las dos reaccionan a Shift + Alt.
+4. Abrí `pincel-illustrator.ahk` en un editor y cambiá lo que quieras:
+
+   | Qué querés cambiar | Dónde, al principio del archivo |
+   |---|---|
+   | Velocidad del modo libre | `BASE_LIBRE`: más alto, más lento |
+   | Velocidad de los pasos de 1 y 0,5 | `BASE_FIJO`: más alto, más lento |
+   | Cuánto cambia cada paso libre | `FACTOR`: `1.03` es un 3 % |
+   | Tope del Stroke | `MAXIMO_STROKE`, en pt |
+   | Teclas y sensibilidad de fábrica | `FABRICA` |
+   | Teclas que se pueden elegir en la ventana | `TECLAS` |
+   | El gesto Shift + Alt | Los atajos `+LAlt`, `+RAlt`, `!LShift` y `!RShift`, y el `while` de `Ajustar()` |
+
+   Si cambiás Shift + Alt, evitá Ctrl y Alt sueltos: Illustrator cambia de herramienta con ellos y esconde el círculo.
+
+5. Hacé doble clic en el archivo para probarlo. Si lo cambiás de nuevo, volvé a abrirlo: reemplaza a la copia anterior.
+6. Si los valores guardados en la ventana te pisan lo que cambiaste, borrá `pincel.ini`, que queda junto al archivo.
+
+Para que arranque con Windows, poné un acceso directo al archivo en la carpeta de Inicio (`Win + R`, escribí `shell:startup`).
+
+Para armar tu propio instalador, corré `instalador\compilar.ps1` en PowerShell. Instala lo que falte y lo deja en `dist\`. Si hacés un fork, GitHub Actions lo compila con cada push y crea una versión con cada tag `vX.Y.Z`.
 
 ## De dónde sale el instalador
 

@@ -1,4 +1,4 @@
-# Abre Windows Sandbox (limpio y sin AutoHotkey), corre dentro-del-sandbox.ps1 con el instalador y espera el informe.
+﻿# Abre Windows Sandbox (limpio y sin AutoHotkey), corre dentro-del-sandbox.ps1 con el instalador y espera el informe.
 # Requiere la característica de Windows «Espacio aislado de Windows». Por defecto prueba dist\Instalar-Atajo-de-Pincel.exe.
 param(
     [string]$Instalador = "$(Split-Path $PSScriptRoot)\dist\Instalar-Atajo-de-Pincel.exe",

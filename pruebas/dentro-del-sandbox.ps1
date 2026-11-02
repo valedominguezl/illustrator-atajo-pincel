@@ -1,4 +1,4 @@
-# Corre dentro de Windows Sandbox (lo lanza probar-en-sandbox.ps1). Prueba el instalador de punta a punta y deja
+﻿# Corre dentro de Windows Sandbox (lo lanza probar-en-sandbox.ps1). Prueba el instalador de punta a punta y deja
 # en la carpeta de resultados un informe y capturas de cada página del asistente. El gesto en Illustrator no se prueba acá.
 param([string]$Instalador, [string]$Resultados)
 
@@ -92,15 +92,12 @@ Comprobar 'la página de pincel propone 5 y 400' ((Leer $campos[0]) -eq '5' -and
 Captura '2-pincel'
 Escribir $campos[0] 'abc'
 Tocar $w 'Siguiente*'
-$error1 = Ventana '*' 1 | Out-Null
 Start-Sleep 1
 Captura '3-error-validacion'
-$aviso = Buscar $w ([Windows.Automation.ControlType]::Window) '*'
-$sigueEnPagina = (Campos $w).Count -ge 2
-Comprobar 'un tamaño inválido no deja avanzar' $sigueEnPagina
 [Windows.Forms.SendKeys]::SendWait('{ENTER}')
 Start-Sleep 1
 $campos = Campos $w
+Comprobar 'un tamaño inválido no deja avanzar' ($campos.Count -ge 2 -and (Leer $campos[0]) -eq 'abc')
 Escribir $campos[0] '7,5'
 Escribir $campos[1] '300'
 Tocar $w 'Siguiente*'
@@ -129,10 +126,9 @@ Comprobar 'figura en Aplicaciones instaladas' (Test-Path $uninstallKey)
 Comprobar 'no hay diálogos de error del atajo' (-not (Ventana 'PincelIllustrator*' 1))
 
 Anotar "`n== El .exe lee el .ini y se puede cambiar desde la bandeja"
-$hwnd = (Get-Process PincelIllustrator).Id
 Add-Type -Namespace Win -Name Api -MemberDefinition '[DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern IntPtr FindWindowW(string c, string t); [DllImport("user32.dll")] public static extern bool PostMessageW(IntPtr h, uint m, IntPtr w, IntPtr l);'
 # Mensaje que el ícono de la bandeja le manda al atajo con doble clic (el tray no se puede tocar por automatización)
-$oculta = [Win.Api]::FindWindowW('AutoHotkey', "$exe")
+$oculta = [Win.Api]::FindWindowW('AutoHotkey', $null)
 [Win.Api]::PostMessageW($oculta, 0x404, [IntPtr]::Zero, [IntPtr]0x203) | Out-Null
 $v = Ventana 'Atajo de pincel' 8
 Comprobar 'el doble clic abre el pedido de tamaño' ($v)

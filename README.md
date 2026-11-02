@@ -2,7 +2,7 @@
 
 Cambiá el tamaño del pincel en Adobe Illustrator como en Photoshop, sin ir al panel.
 
-Mantené **Shift + Alt** y mové el mouse, sin hacer clic: a la derecha agranda, a la izquierda achica. Mientras ajustás, un círculo rojo muestra el tamaño real y abajo aparece la medida en pt y mm.
+Apretá **Shift**, después **Alt**, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica. El círculo de vista previa de Illustrator se actualiza mientras ajustás, y al lado aparece el Stroke en pt y mm.
 
 Solo para Windows 10 u 11 de 64 bits.
 
@@ -17,20 +17,22 @@ No hace falta instalar nada más ni tener permisos de administrador.
 ## Usar
 
 1. Abrí un documento en Illustrator y elegí el Pincel, el Lápiz o la Pluma.
-2. Mantené **Shift + Alt** y mové el mouse sin hacer clic.
+2. Apretá **Shift**, después **Alt**, y mové el mouse sin hacer clic. Si apretás primero Alt, puede aparecer el cursor de suavizar de Illustrator en lugar del círculo.
 3. Soltá las teclas y dibujá: lo próximo que dibujes sale con ese grosor.
 
 Mientras el atajo está activo, vas a ver un ícono verde con una **H** junto al reloj de Windows (a veces queda escondido bajo la flechita **^**).
 
-## Cuando cambiás de pincel
+## Cambiar de a poco, en valores redondos
 
-No hay que configurar nada: el atajo calcula el tamaño de tu pincel midiendo lo último que dibujaste.
+Mientras mantenés Shift + Alt, sumá otra tecla. El cambio va más lento y cae en valores redondos del Stroke:
 
-Illustrator no le avisa qué pincel elegiste, así que **después de cambiar de pincel dibujá una línea con él**. Hasta entonces, el círculo rojo sigue mostrando el tamaño del pincel anterior. Lo mismo pasa si lo último que dibujaste no tiene pincel, como una línea hecha con la Pluma.
+| Teclas | Cómo cambia el Stroke |
+|---|---|
+| Shift + Alt | Rápido, en proporción al tamaño |
+| Shift + Alt + **Ctrl** | De a 1 pt |
+| Shift + Alt + **Espacio** | De a 0,5 pt |
 
-Con pinceles artísticos o de cerdas, el círculo es una aproximación.
-
-Si querés poner el tamaño a mano o cambiar el grosor máximo de la línea (400 pt de fábrica), hacé doble clic en el ícono de la **H** junto al reloj.
+Los pasos son siempre en puntos, aunque tu documento muestre el Stroke en otra unidad, como milímetros.
 
 ## Activar o desactivar el arranque con Windows
 
@@ -49,7 +51,9 @@ Abrí **Configuración → Aplicaciones → Aplicaciones instaladas**, buscá **
 - Tiene que haber un documento abierto en Illustrator y esa ventana tiene que estar al frente.
 - Si abrís Illustrator como administrador, el atajo no puede hablar con él y no avisa. Abrí Illustrator de la forma normal, sin «Ejecutar como administrador». Si lo tenés configurado para abrirse siempre así, sacale esa opción en Propiedades → Compatibilidad de su acceso directo.
 
-**El círculo rojo no coincide con la línea.** Dibujá una línea con tu pincel y volvé a probar: el atajo mide lo último que dibujaste. Más detalles en [Cuando cambiás de pincel](#cuando-cambiás-de-pincel).
+**No veo el círculo mientras ajusto.** Apretá Shift antes que Alt. El círculo lo dibuja Illustrator: si tu versión o tu herramienta no lo muestran, el Stroke igual cambia y podés guiarte por la medida que aparece junto al cursor.
+
+**El número junto al cursor no coincide con el grosor de la línea.** Es normal: muestra el Stroke, y el pincel lo multiplica. Con un pincel de 3 pt y Stroke de 10 pt, la línea sale de 30 pt. El círculo sí muestra el grosor final.
 
 **El tamaño salta el doble o el círculo parpadea.** Probablemente hay dos copias reaccionando a la vez. Pasa si antes usabas el script suelto `pincel-illustrator.ahk`: cerralo desde su ícono junto al reloj y sacá su acceso directo de la carpeta de Inicio (`Win + R`, escribí `shell:startup`).
 

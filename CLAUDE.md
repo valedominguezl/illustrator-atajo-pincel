@@ -1,6 +1,6 @@
 # Illustrator: atajo de pincel
 
-Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, con un círculo rojo a escala real, como Alt + clic derecho en Photoshop. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
+Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 pt y sumando Espacio de a 0,5 pt. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
 
 ## Objetivo actual
 
@@ -8,7 +8,7 @@ Instalador `.exe` guiado, publicado en GitHub Releases. Está terminado cuando, 
 
 ## Qué toca en la PC
 
-- **El programa**: `%LOCALAPPDATA%\Programs\Atajo de pincel para Illustrator\`, con `PincelIllustrator.exe`, `pincel.ini` y las licencias. El desinstalador cierra el proceso y borra la carpeta.
+- **El programa**: `%LOCALAPPDATA%\Programs\Atajo de pincel para Illustrator\`, con `PincelIllustrator.exe` y las licencias. El desinstalador cierra el proceso y borra la carpeta.
 - **Inicio de Windows** (opcional): un acceso directo en `shell:startup`. Reinstalar con la opción destildada lo saca.
 - **Menú Inicio**: un acceso directo.
 - **Aplicaciones instaladas**: la clave de desinstalación en `HKCU`, que crea Inno Setup.
@@ -30,9 +30,13 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 
 ## Lo que el script da por hecho
 
-- `PINCEL_PT` es el tamaño del pincel: el grosor real es `PINCEL_PT` × Stroke, y el círculo sale de esa cuenta. Al apretar Shift + Alt se mide del último trazo de la capa activa (lo que el pincel suma al contorno ÷ Stroke), así que después de cambiar de pincel hay que dibujar un trazo para que coincida. Se guarda en `pincel.ini`, junto al `.exe`; `MAXIMO_PT` y el valor a mano se cambian desde el ícono de la bandeja.
-- Lo que ya se probó y no sirve para leer el pincel elegido (Illustrator 2026): su ventana no expone controles por UI Automation; una línea creada por script no toma el pincel; el círculo de vista previa lo dibuja Illustrator en el lienzo, no es un cursor de Windows, y desaparece al apretar Alt.
+- No necesita saber qué pincel está elegido: cambia `defaultStrokeWidth` y el círculo de vista previa de Illustrator se actualiza solo (comprobado en Illustrator 2026, sin mover el mouse). Si Alt llega a Illustrator, activa el suavizar y esconde ese círculo: por eso el script bloquea Shift, Alt, Ctrl y Espacio mientras ajusta, y esas teclas solo se sueltan cuando se soltó todo.
+- Alt primero no alcanza a evitar el suavizar: Illustrator ya recibió Alt. El gesto correcto es Shift y después Alt.
+- Windows cambia el idioma si ve Alt y Shift juntos: el script nunca deja que los dos estén apretados a la vez para el sistema.
+- El cursor queda quieto con `BlockInput "MouseMove"` y el movimiento se lee por Raw Input (`WM_INPUT`). Devolverlo a su lugar con `SetCursorPos` lo hacía temblar.
+- Lo que no sirve para leer el pincel elegido: su ventana no expone controles por UI Automation y una línea creada por script no toma el pincel. El círculo lo dibuja Illustrator en el lienzo, no es un cursor de Windows.
 - Habla con Illustrator por COM (`ComObjActive("Illustrator.Application")` + `DoJavaScript`), y necesita un documento abierto. Si Illustrator corre como administrador y el atajo no, COM falla y el script no avisa: está en la sección de problemas del README.
+- El Ctrl y Espacio van en puntos aunque el documento muestre otra unidad.
 - Detecta Illustrator por `ahk_exe Illustrator.exe`, que no depende de la versión.
 
 ## Pruebas

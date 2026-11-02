@@ -35,7 +35,6 @@ public static class W {
 $nombre = 'Atajo de pincel para Illustrator'
 $app = "$env:LOCALAPPDATA\Programs\$nombre"
 $exe = "$app\PincelIllustrator.exe"
-$ini = "$app\pincel.ini"
 $lnkInicio = "$([Environment]::GetFolderPath('Startup'))\$nombre.lnk"
 $lnkMenu = "$([Environment]::GetFolderPath('Programs'))\$nombre.lnk"
 $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5E34864E-8941-4C6D-951E-7877ECFA8A73}_is1'
@@ -130,7 +129,7 @@ if (-not $w) { throw 'No apareció la ventana del asistente' }
 Start-Sleep 1
 Captura '1-bienvenida'
 Tocar $w 'Siguiente*'
-Comprobar 'el asistente no pregunta el tamaño del pincel' ((Campos $w).Count -eq 0)
+Comprobar 'el asistente no pide escribir nada' ((Campos $w).Count -eq 0)
 Captura '4-tareas' # sin tocar nada: la opción de arrancar con Windows tiene que venir tildada
 Tocar $w 'Siguiente*'
 Captura '5-listo'
@@ -151,37 +150,6 @@ Comprobar 'el acceso directo de Inicio apunta al .exe' ($destino -eq $exe)
 Comprobar 'figura en Aplicaciones instaladas' (Test-Path $uninstallKey)
 Comprobar 'no hay diálogos de error del atajo' (-not (Ventana '*' 'PincelIllustrator*' 1))
 
-Anotar "`n== Los valores de fábrica se cambian desde la bandeja y sobreviven al reinicio del atajo"
-# Mensaje que el ícono de la bandeja le manda al atajo con doble clic
-$oculta = [W]::FindWindowW('AutoHotkey', [NullString]::Value)
-Anotar "      ventana oculta del atajo: $oculta '$([W]::Texto($oculta))'"
-[W]::PostMessageW($oculta, 0x404, [IntPtr]0x404, [IntPtr]0x203) | Out-Null
-$v = Ventana '*' 'Atajo de pincel' 8
-Comprobar 'el doble clic abre el pedido de tamaño' $v
-if (-not $v) {
-    Captura '7-sin-pedido'
-    foreach ($x in [W]::Superiores()) { Anotar "      [$([W]::Clase($x))] $([W]::Texto($x))" }
-}
-if ($v) {
-    Comprobar 'propone el pincel de fábrica (5)' ([W]::Texto((Campos $v)[0]) -eq '5')
-    Captura '7-bandeja'
-    [W]::PonerTexto((Campos $v)[0], '9,25')
-    Tocar $v 'OK'
-    $v = Ventana '*' 'Atajo de pincel' 5
-    Comprobar 'propone el máximo de fábrica (400)' ([W]::Texto((Campos $v)[0]) -eq '400')
-    Tocar $v 'OK'
-    Start-Sleep 1
-    Comprobar 'guardó el cambio con punto decimal (9.25)' ((Get-Content $ini) -match 'PincelPt=9.25')
-    Stop-Process -Name PincelIllustrator -Force
-    Start-Sleep 1
-    Start-Process $exe
-    Start-Sleep 2
-    [W]::PostMessageW([W]::FindWindowW('AutoHotkey', [NullString]::Value), 0x404, [IntPtr]0x404, [IntPtr]0x203) | Out-Null
-    $v = Ventana '*' 'Atajo de pincel' 8
-    Comprobar 'al volver a abrir lee 9.25 del .ini' ($v -and [W]::Texto((Campos $v)[0]) -eq '9.25')
-    if ($v) { Tocar $v 'Cancel' }
-}
-
 Anotar "`n== Arranque: el acceso directo de Inicio levanta el atajo"
 Stop-Process -Name PincelIllustrator -Force
 Start-Sleep 1
@@ -195,7 +163,6 @@ $antes = (Get-Process PincelIllustrator).Id
 $codigo = Instalar @('/TASKS=""')
 Comprobar "el instalador termina bien (código $codigo)" ($codigo -eq 0)
 Comprobar 'desaparece el acceso directo de Inicio' (-not (Test-Path $lnkInicio))
-Comprobar 'conserva el tamaño cambiado (9.25)' ((Get-Content $ini) -match 'PincelPt=9.25')
 Comprobar 'el .exe corre de nuevo y es otro proceso' ((Corriendo) -and (Get-Process PincelIllustrator).Id -ne $antes)
 Comprobar 'una sola copia corriendo' (@(Get-Process PincelIllustrator).Count -eq 1)
 
@@ -203,7 +170,6 @@ Anotar "`n== Volver a activar el arranque"
 $codigo = Instalar @('/TASKS="arranque"')
 Comprobar "el instalador termina bien (código $codigo)" ($codigo -eq 0)
 Comprobar 'vuelve el acceso directo de Inicio' (Test-Path $lnkInicio)
-Comprobar 'sigue conservando el tamaño (9.25)' ((Get-Content $ini) -match 'PincelPt=9.25')
 
 Anotar "`n== Desinstalar con el atajo corriendo"
 Comprobar 'está corriendo antes de desinstalar' (Corriendo)
@@ -218,7 +184,7 @@ $diferencias = Compare-Object $fotoAntes (Foto)
 Comprobar 'archivos y registro iguales a los de antes de instalar' (-not $diferencias)
 $diferencias | ForEach-Object { Anotar "      $($_.SideIndicator) $($_.InputObject)" }
 
-Anotar "`n== Desinstalar sin .ini y con el arranque apagado"
+Anotar "`n== Desinstalar con el arranque apagado"
 Instalar @('/TASKS=""') | Out-Null
 Stop-Process -Name PincelIllustrator -Force -ErrorAction SilentlyContinue
 $codigo = Desinstalar

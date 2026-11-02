@@ -37,7 +37,7 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Messages]
 WelcomeLabel2=Con este atajo cambiás el tamaño del pincel en Illustrator manteniendo Shift + Alt y moviendo el mouse, como en Photoshop.%n%nNo hace falta instalar nada más ni tener permisos de administrador.
-FinishedLabel=Ya está instalado.%n%nAbrí un documento en Illustrator, mantené Shift + Alt y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica.%n%nEl atajo averigua el tamaño de tu pincel midiendo tu último trazo: si cambiás de pincel, dibujá una línea con él para que el círculo rojo coincida.
+FinishedLabel=Ya está instalado.%n%nAbrí un documento en Illustrator, apretá Shift, después Alt, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica.%n%nSumando Ctrl cambia de a 1 pt, y sumando Espacio, de a 0,5 pt.
 
 [Tasks]
 Name: "arranque"; Description: "Arrancar el atajo con Windows (recomendado)"
@@ -57,10 +57,6 @@ Name: "{userstartup}\{#Nombre}"; Filename: "{app}\{#Exe}"; Tasks: arranque
 
 [Run]
 Filename: "{app}\{#Exe}"; Description: "Activar el atajo ahora"; Flags: nowait postinstall
-
-[UninstallDelete]
-; Lo escribe el atajo, no el instalador
-Type: files; Name: "{app}\pincel.ini"
 
 [Code]
 // Para poder reemplazar o borrar el .exe. Va por nombre exacto: no toca otros scripts de AutoHotkey de la persona.

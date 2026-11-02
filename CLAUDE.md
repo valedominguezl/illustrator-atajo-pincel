@@ -1,6 +1,6 @@
 # Illustrator: atajo de pincel
 
-Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 y sumando Bloq Mayús de a 0,5, en la unidad del Stroke. Apretando A durante el gesto, el Stroke alterna entre pt y mm. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
+Shift + Alt + mover el mouse cambia el tamaño del pincel en Illustrator, viendo el círculo de vista previa del propio Illustrator, como Alt + clic derecho en Photoshop. Sumando Ctrl va de a 1 y sumando Bloq Mayús de a 0,5, en la unidad del Stroke. Apretando A durante el gesto, el Stroke alterna entre pt y mm. La sensibilidad de cada modo y esas tres teclas se cambian en los ajustes, con doble clic en el ícono de la bandeja. Shift + Alt queda fijo. El público son personas que usan Illustrator y no saben programar: instalar tiene que ser bajar un `.exe` y seguir el asistente.
 
 ## Objetivo actual
 
@@ -8,7 +8,7 @@ Instalador `.exe` guiado, publicado en GitHub Releases. Está terminado cuando, 
 
 ## Qué toca en la PC
 
-- **El programa**: `%LOCALAPPDATA%\Programs\Atajo de pincel para Illustrator\`, con `PincelIllustrator.exe` y las licencias. El desinstalador cierra el proceso y borra la carpeta.
+- **El programa**: `%LOCALAPPDATA%\Programs\Atajo de pincel para Illustrator\`, con `PincelIllustrator.exe`, las licencias y `pincel.ini` si se guardaron ajustes. El desinstalador cierra el proceso y borra la carpeta.
 - **Inicio de Windows** (opcional): un acceso directo en `shell:startup`. Reinstalar con la opción destildada lo saca.
 - **Menú Inicio**: un acceso directo.
 - **Aplicaciones instaladas**: la clave de desinstalación en `HKCU`, que crea Inno Setup.
@@ -30,7 +30,7 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 
 ## Lo que el script da por hecho
 
-- No necesita saber qué pincel está elegido: cambia `defaultStrokeWidth` y el círculo de vista previa de Illustrator se actualiza solo (comprobado en Illustrator 2026, sin mover el mouse). Si Alt llega a Illustrator, activa el suavizar y esconde ese círculo: por eso el script bloquea Shift, Alt, Ctrl y Bloq Mayús mientras ajusta, y esas teclas solo se sueltan cuando se soltó todo.
+- No necesita saber qué pincel está elegido: cambia `defaultStrokeWidth` y el círculo de vista previa de Illustrator se actualiza solo (comprobado en Illustrator 2026, sin mover el mouse). Si Alt llega a Illustrator, activa el suavizar y esconde ese círculo: por eso el script bloquea Shift, Alt y las teclas elegidas mientras ajusta, y esas teclas solo se sueltan cuando se soltó todo.
 - Alt primero no alcanza a evitar el suavizar: Illustrator ya recibió Alt. El gesto correcto es Shift y después Alt.
 - Windows cambia el idioma si ve Alt y Shift juntos: el script nunca deja que los dos estén apretados a la vez para el sistema.
 - El cursor queda quieto con `BlockInput "MouseMove"` y el movimiento se lee por Raw Input (`WM_INPUT`). Devolverlo a su lugar con `SetCursorPos` lo hacía temblar.
@@ -39,7 +39,7 @@ No se instala AutoHotkey ni se toca el script suelto de `Documents\AutoHotkey`. 
 - Ctrl y Bloq Mayús van de a 1 y 0,5 en la unidad de la preferencia `strokeUnits` de Illustrator, que comparten el pincel y las demás herramientas. `defaultStrokeWidth` siempre es en pt. El tope `MAXIMO_STROKE` es de 400 pt sobre el Stroke, no sobre el grosor final, que depende del pincel.
 - Con un objeto seleccionado, `defaultStrokeWidth` lee y cambia el Stroke de ese objeto, igual que el campo de arriba.
 - Detecta Illustrator por `ahk_exe Illustrator.exe` y su ventana principal por `ahk_class illustrator`, para no actuar con un diálogo abierto. La clase solo se comprobó en Illustrator 2026.
-- Si una tecla queda bloqueada a medias, Windows la cree apretada y Illustrator se traba (Ctrl trabado hace que Esc abra Inicio). Toda salida de `Ajustar` tiene que dejar soltadas Shift, Alt y Ctrl. Para diagnosticar: crear `%TEMP%\pincel-atajo.log` vacío y el atajo registra ahí cada gesto.
+- Si una tecla queda bloqueada a medias, Windows la cree apretada y Illustrator se traba (Ctrl trabado hace que Esc abra Inicio). Toda salida de `Ajustar` tiene que dejar soltadas Shift, Alt y Ctrl. El arranque con Windows y el final del instalador pasan `/arranque` al `.exe`; abrirlo a mano muestra los ajustes. Para diagnosticar: crear `%TEMP%\pincel-atajo.log` vacío y el atajo registra ahí cada gesto.
 
 ## Pruebas
 

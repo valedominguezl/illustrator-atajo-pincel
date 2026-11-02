@@ -30,6 +30,8 @@ public static class W {
         return "";
     }
     public static List<string> NoResponden = new List<string>();
+    [DllImport("user32", EntryPoint = "SendMessageTimeoutW")] static extern IntPtr SendNum(IntPtr h, uint m, IntPtr w, IntPtr l, uint f, uint ms, out IntPtr r);
+    public static int Enviar(IntPtr h, uint m, int w, int l) { IntPtr r; SendNum(h, m, (IntPtr)w, (IntPtr)l, 2, 2000, out r); return (int)r; }
     public static void PonerTexto(IntPtr h, string t) { SendTexto(h, 0x0C, IntPtr.Zero, t); }
     static IntPtr[] Visibles(Action<Cb> enumerar) {
         var r = new List<IntPtr>();
@@ -46,6 +48,7 @@ $app = "$env:LOCALAPPDATA\Programs\$nombre"
 $exe = "$app\PincelIllustrator.exe"
 $lnkInicio = "$([Environment]::GetFolderPath('Startup'))\$nombre.lnk"
 $lnkMenu = "$([Environment]::GetFolderPath('Programs'))\$nombre.lnk"
+$ini = "$app\pincel.ini"
 $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5E34864E-8941-4C6D-951E-7877ECFA8A73}_is1'
 $informe = "$Resultados\informe.txt"
 $script:fallos = 0
@@ -158,6 +161,70 @@ $destino = (New-Object -ComObject WScript.Shell).CreateShortcut($lnkInicio).Targ
 Comprobar 'el acceso directo de Inicio apunta al .exe' ($destino -eq $exe)
 Comprobar 'figura en Aplicaciones instaladas' (Test-Path $uninstallKey)
 Comprobar 'no hay diálogos de error del atajo' (-not (Ventana '*' 'PincelIllustrator*' 1))
+Comprobar 'al terminar de instalar no se abre sola la ventana de ajustes' (-not (Ventana '*' $nombre 2))
+
+Anotar "`n== Ventana de ajustes"
+function AbrirDesdeBandeja {
+    # Mensaje que el ícono de la bandeja le manda al atajo con doble clic
+    [W]::PostMessageW([W]::FindWindowW('AutoHotkey', [NullString]::Value), 0x404, [IntPtr]0x404, [IntPtr]0x203) | Out-Null
+    return (Ventana '*' $nombre 8)
+}
+function Controles($v, $clase) { @([W]::Hijos($v) | Where-Object { [W]::Clase($_) -match $clase }) }
+function Posicion($h) { [W]::Enviar($h, 0x400, 0, 0) }              # TBM_GETPOS
+function Elegida($h) { [W]::Enviar($h, 0x147, 0, 0) }               # CB_GETCURSEL
+$v = AbrirDesdeBandeja
+Comprobar 'el doble clic en el ícono abre los ajustes' $v
+if (-not $v) { throw 'no se abrió la ventana de ajustes' }
+Start-Sleep 1
+Captura '7-ajustes'
+$des = Controles $v 'trackbar'; $lis = Controles $v 'ComboBox'
+Comprobar 'hay tres velocidades y tres teclas' ($des.Count -eq 3 -and $lis.Count -eq 3)
+Comprobar 'las velocidades arrancan en el valor de fábrica' (((Posicion $des[0]) -eq 50) -and ((Posicion $des[1]) -eq 50) -and ((Posicion $des[2]) -eq 50))
+$indice0 = Elegida $lis[0]
+[void][W]::Enviar($lis[0], 0x14E, (Elegida $lis[1]), 0)             # CB_SETCURSEL: la misma tecla en dos acciones
+Tocar $v 'Guardar'
+$aviso = Ventana '#32770' '*' 4
+Comprobar 'no deja guardar la misma tecla para dos acciones' ($aviso -and -not (Test-Path $ini))
+Captura '8-teclas-repetidas'
+[W]::PostMessageW($aviso, 0x10, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+Start-Sleep 1
+[void][W]::Enviar($lis[0], 0x14E, 3, 0)                             # Espacio
+[void][W]::Enviar($des[0], 0x405, 1, 80)                            # TBM_SETPOS
+Tocar $v 'Guardar'
+Start-Sleep 1
+Comprobar 'guardar cierra la ventana' (-not (Ventana '*' $nombre 2))
+$contenido = Get-Content $ini
+Comprobar 'guardó la velocidad' ($contenido -match '=80$')
+Comprobar 'guardó la tecla' ($contenido -match '=Space$')
+
+Anotar "`n== Si lo cierran sin querer"
+Stop-Process -Name PincelIllustrator -Force
+Start-Sleep 1
+Start-Process $lnkMenu
+$v = Ventana '*' $nombre 8
+Comprobar 'abrirlo desde el menú Inicio muestra los ajustes' $v
+Comprobar 'y queda corriendo' (Corriendo)
+if ($v) {
+    Comprobar 'conserva la velocidad guardada' ((Posicion (Controles $v 'trackbar')[0]) -eq 80)
+    Comprobar 'conserva la tecla guardada' ((Elegida (Controles $v 'ComboBox')[0]) -eq 3)
+    Tocar $v 'Cancelar'
+    Start-Sleep 1
+}
+Comprobar 'cerrar los ajustes no cierra el atajo' (Corriendo)
+
+Anotar "`n== Un archivo de ajustes roto no rompe el atajo"
+Stop-Process -Name PincelIllustrator -Force
+Start-Sleep 1
+Set-Content $ini "[Sensibilidad]`nLibre=hola`nUnPaso=999`n[Teclas]`nTeclaUnPaso=Shift`nTeclaMedioPaso=a`nTeclaUnidad=a"
+Start-Process $exe
+$v = Ventana '*' $nombre 8
+Comprobar 'arranca igual' ((Corriendo) -and $v)
+Comprobar 'sin diálogos de error' (-not (Ventana '*' 'PincelIllustrator*' 1))
+if ($v) {
+    Comprobar 'vuelve a los valores de fábrica' ((Posicion (Controles $v 'trackbar')[0]) -eq 50)
+    Tocar $v 'Guardar'
+    Start-Sleep 1
+}
 
 Anotar "`n== Arranque: el acceso directo de Inicio levanta el atajo"
 Stop-Process -Name PincelIllustrator -Force
@@ -166,6 +233,7 @@ Comprobar 'cerrado antes de probar' (-not (Corriendo))
 Start-Process $lnkInicio
 Start-Sleep 3
 Comprobar 'el acceso directo lo arranca' (Corriendo)
+Comprobar 'sin abrir los ajustes' (-not (Ventana '*' $nombre 2))
 
 Anotar "`n== Actualizar encima, sin arranque y con el atajo corriendo"
 $antes = (Get-Process PincelIllustrator).Id
@@ -174,6 +242,7 @@ Comprobar "el instalador termina bien (código $codigo)" ($codigo -eq 0)
 Comprobar 'desaparece el acceso directo de Inicio' (-not (Test-Path $lnkInicio))
 Comprobar 'el .exe corre de nuevo y es otro proceso' ((Corriendo) -and (Get-Process PincelIllustrator).Id -ne $antes)
 Comprobar 'una sola copia corriendo' (@(Get-Process PincelIllustrator).Count -eq 1)
+Comprobar 'actualizar conserva los ajustes guardados' (Test-Path $ini)
 
 Anotar "`n== Volver a activar el arranque"
 $codigo = Instalar @('/TASKS="arranque"')
@@ -185,6 +254,7 @@ Comprobar 'está corriendo antes de desinstalar' (Corriendo)
 $codigo = Desinstalar
 Comprobar "el desinstalador termina bien (código $codigo)" ($codigo -eq 0)
 Comprobar 'el atajo ya no corre' (-not (Corriendo))
+Comprobar 'no queda el archivo de ajustes' (-not (Test-Path $ini))
 Comprobar 'no queda la carpeta instalada' (-not (Test-Path $app))
 Comprobar 'no queda el acceso directo de Inicio' (-not (Test-Path $lnkInicio))
 Comprobar 'no queda el acceso directo del menú' (-not (Test-Path $lnkMenu))

@@ -38,6 +38,12 @@ Los pasos van en la unidad que Illustrator usa para el Stroke, con el pincel y c
 
 Mientras mantenés Shift + Alt, apretá **A**: el Stroke pasa de pt a mm y viceversa. El grosor de la línea no cambia, solo la unidad en que se mide. La opción queda guardada en Illustrator (Edit → Preferences → Units → Stroke) hasta que la vuelvas a cambiar.
 
+## Cambiar la sensibilidad y las teclas
+
+Hacé doble clic en el ícono de la **H** junto al reloj de Windows (a veces está bajo la flechita **^**). Ahí podés cambiar la velocidad de cada modo y qué teclas se suman a Shift + Alt. **Valores de fábrica** vuelve todo a como estaba.
+
+Shift + Alt queda fijo, porque otras teclas cambian de herramienta en Illustrator y esconden el círculo.
+
 ## Tope
 
 El atajo no sube el Stroke de 400 pt, aunque trabajes en otra unidad. El grosor final de la línea puede ser mayor, porque el pincel lo multiplica.
@@ -47,6 +53,10 @@ El atajo no sube el Stroke de 400 pt, aunque trabajes en otra unidad. El grosor 
 Volvé a abrir el instalador y tildá o destildá la opción.
 
 Si no arranca con Windows, lo abrís cuando quieras buscando **Atajo de pincel para Illustrator** en el menú Inicio. Para cerrarlo, clic derecho en el ícono de la **H** y **Salir**.
+
+## Si lo cerraste sin querer
+
+No se rompe nada: solo deja de funcionar Shift + Alt. Buscá **Atajo de pincel para Illustrator** en el menú Inicio y abrilo: va a aparecer la ventana de ajustes, y el atajo ya queda funcionando aunque la cierres. Tus ajustes se conservan.
 
 ## Desinstalar
 

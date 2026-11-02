@@ -8,8 +8,17 @@ DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr") ; píxeles reales en l
 A_MenuMaskKey := "vkE8"
 PASO := 4         ; píxeles de movimiento por cada paso
 FACTOR := 1.06    ; cada paso agranda/achica un 6 % (fino en tamaños chicos, rápido en grandes)
-PINCEL_PT := 5    ; tamaño del pincel caligráfico elegido («5 pt. Round»): el trazo lo multiplica. Para el Lápiz, poné 1.
-MAXIMO_PT := 400  ; grosor máximo de la línea
+ARCHIVO_INI := A_ScriptDir "\pincel.ini" ; lo escribe el instalador; se cambia desde el ícono de la bandeja
+PINCEL_PT := LeerNumero("PincelPt", 5, 0.1, 1000)   ; tamaño del pincel caligráfico elegido («5 pt. Round»): el trazo lo multiplica. Para el Lápiz, 1.
+MAXIMO_PT := LeerNumero("MaximoPt", 400, 0.1, 5000) ; grosor máximo de la línea
+
+;@Ahk2Exe-SetDescription Atajo de pincel para Illustrator
+;@Ahk2Exe-SetName Atajo de pincel para Illustrator
+A_IconTip := "Atajo de pincel: Shift + Alt en Illustrator"
+A_TrayMenu.Delete()
+A_TrayMenu.Add("Cambiar tamaño del pincel…", CambiarTamano)
+A_TrayMenu.Add("Salir", (*) => ExitApp())
+A_TrayMenu.Default := "Cambiar tamaño del pincel…"
 
 #HotIf WinActive("ahk_exe Illustrator.exe")
 ~+Alt::
@@ -23,6 +32,47 @@ MAXIMO_PT := 400  ; grosor máximo de la línea
 *LAlt::
 *RAlt:: return
 #HotIf
+
+LeerNumero(clave, porDefecto, minimo, maximo) {
+    v := NumeroValido(IniRead(ARCHIVO_INI, "Pincel", clave, ""), minimo, maximo)
+    return v = "" ? porDefecto : v
+}
+
+; Acepta coma o punto decimal. Devuelve "" si no es un número dentro del rango.
+NumeroValido(texto, minimo, maximo) {
+    v := StrReplace(Trim(texto), ",", ".")
+    return IsNumber(v) && v + 0 >= minimo && v + 0 <= maximo ? v + 0 : ""
+}
+
+CambiarTamano(*) {
+    global PINCEL_PT, MAXIMO_PT
+    pincel := PedirNumero("Tamaño de tu pincel en pt.`nEl pincel «5 pt. Round» es 5. Para el Lápiz, poné 1.", PINCEL_PT, 0.1, 1000)
+    if pincel = ""
+        return
+    maximo := PedirNumero("Grosor máximo de la línea en pt.", MAXIMO_PT, pincel, 5000)
+    if maximo = ""
+        return
+    try {
+        IniWrite pincel, ARCHIVO_INI, "Pincel", "PincelPt"
+        IniWrite maximo, ARCHIVO_INI, "Pincel", "MaximoPt"
+    } catch {
+        MsgBox "No se pudo guardar en " ARCHIVO_INI, "Atajo de pincel", "Icon!"
+        return
+    }
+    PINCEL_PT := pincel, MAXIMO_PT := maximo
+}
+
+PedirNumero(texto, actual, minimo, maximo) {
+    loop {
+        r := InputBox(texto, "Atajo de pincel", "w360 h150", actual)
+        if r.Result != "OK"
+            return ""
+        v := NumeroValido(r.Value, minimo, maximo)
+        if v != ""
+            return v
+        MsgBox "Escribí un número entre " minimo " y " maximo ".", "Atajo de pincel", "Icon!"
+    }
+}
 
 Ajustar() {
     static activo := false

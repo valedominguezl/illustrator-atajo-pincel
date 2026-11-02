@@ -2,7 +2,7 @@
 #SingleInstance Force
 ; Illustrator: Shift + Alt + mover el mouse (sin hacer clic) = tamaño del pincel, como Alt + clic derecho en Photoshop.
 ; Derecha agranda, izquierda achica. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke (pt, mm…).
-; Apretando M durante el gesto, Illustrator pasa el Stroke de pt a mm y viceversa.
+; Apretando A durante el gesto, Illustrator pasa el Stroke de pt a mm y viceversa.
 ; Cambia el grosor de trazo de lo próximo que dibujes, igual que el campo «Stroke» de arriba, y el círculo de vista
 ; previa del propio Illustrator se actualiza solo. Por eso Alt no le llega a Illustrator: lo escondería.
 
@@ -12,7 +12,7 @@ DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr") ; píxeles reales en l
 A_MenuMaskKey := "vkE8"
 PASO := 24           ; movimiento por cada paso
 FACTOR := 1.03       ; cada paso agranda/achica un 3 % (fino en tamaños chicos, rápido en grandes)
-PASO_FIJO := 120     ; movimiento por cada paso con Ctrl o Espacio: más lento, para poder frenar en el valor justo
+PASO_FIJO := 240    ; movimiento por cada paso con Ctrl o Espacio: más lento, para poder frenar en el valor justo
 MAXIMO_STROKE := 400 ; tope del Stroke, en pt
 ; Preferencia strokeUnits de Illustrator: puntos por unidad y nombre
 UNIDADES := Map(0, [72, "in"], 1, [72 / 25.4, "mm"], 2, [1, "pt"], 3, [12, "pc"], 4, [72 / 2.54, "cm"], 5, [72 / 101.6, "Q"], 6, [1, "px"])
@@ -36,7 +36,7 @@ A_TrayMenu.Add("Salir", (*) => ExitApp())
 *LControl::
 *RControl::
 *Space:: return
-*m:: {
+*a:: {
     global cambiarUnidad := true
 }
 ; Solo en la ventana principal: con un diálogo abierto, Illustrator no responde hasta cerrarlo.

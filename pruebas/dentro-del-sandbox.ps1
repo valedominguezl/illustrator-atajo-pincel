@@ -14,13 +14,22 @@ public static class W {
     [DllImport("user32")] static extern bool EnumWindows(Cb c, IntPtr l);
     [DllImport("user32")] static extern bool EnumChildWindows(IntPtr p, Cb c, IntPtr l);
     [DllImport("user32", CharSet = CharSet.Unicode)] static extern int GetClassNameW(IntPtr h, StringBuilder s, int n);
-    [DllImport("user32", CharSet = CharSet.Unicode)] static extern IntPtr SendMessageW(IntPtr h, uint m, IntPtr w, StringBuilder s);
+    [DllImport("user32", CharSet = CharSet.Unicode)] static extern IntPtr SendMessageTimeoutW(IntPtr h, uint m, IntPtr w, StringBuilder s, uint f, uint ms, out IntPtr r);
+    [DllImport("user32")] static extern int GetWindowThreadProcessId(IntPtr h, out int pid);
     [DllImport("user32", CharSet = CharSet.Unicode, EntryPoint = "SendMessageW")] static extern IntPtr SendTexto(IntPtr h, uint m, IntPtr w, string s);
     [DllImport("user32")] public static extern bool IsWindowVisible(IntPtr h);
     [DllImport("user32")] public static extern bool PostMessageW(IntPtr h, uint m, IntPtr w, IntPtr l);
     [DllImport("user32", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindowW(string c, string t);
     public static string Clase(IntPtr h) { var s = new StringBuilder(256); GetClassNameW(h, s, 256); return s.ToString(); }
-    public static string Texto(IntPtr h) { var s = new StringBuilder(4096); SendMessageW(h, 0x0D, (IntPtr)4096, s); return s.ToString(); }
+    public static string Texto(IntPtr h) {
+        var s = new StringBuilder(4096); IntPtr r;
+        if (SendMessageTimeoutW(h, 0x0D, (IntPtr)4096, s, 2, 2000, out r) != IntPtr.Zero) return s.ToString();
+        int pid; GetWindowThreadProcessId(h, out pid);
+        var linea = "      no responde: [" + Clase(h) + "] proceso " + pid + " " + System.Diagnostics.Process.GetProcessById(pid).ProcessName;
+        if (!NoResponden.Contains(linea)) NoResponden.Add(linea);
+        return "";
+    }
+    public static List<string> NoResponden = new List<string>();
     public static void PonerTexto(IntPtr h, string t) { SendTexto(h, 0x0C, IntPtr.Zero, t); }
     static IntPtr[] Visibles(Action<Cb> enumerar) {
         var r = new List<IntPtr>();
@@ -194,5 +203,7 @@ Comprobar 'tampoco queda nada' (-not (Test-Path $app) -and -not $diferencias)
 $diferencias | ForEach-Object { Anotar "      $($_.SideIndicator) $($_.InputObject)" }
 if (Test-Path $app) { Get-ChildItem $app -Force | ForEach-Object { Anotar "      queda en la carpeta: $($_.Name)" } }
 
+[W]::NoResponden | ForEach-Object { Anotar $_ }
+Comprobar 'el atajo nunca dejó de responder' (-not ([W]::NoResponden -match 'PincelIllustrator'))
 Anotar "`nFALLAS: $script:fallos"
 'terminado' | Set-Content "$Resultados\terminado.txt"

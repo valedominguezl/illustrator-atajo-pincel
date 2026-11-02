@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+#Requires AutoHotkey v2.0
 #SingleInstance Force
 ; Illustrator: Shift + Alt + mover el mouse (sin hacer clic) = tamaño del pincel, como Alt + clic derecho en Photoshop.
 ; Derecha agranda, izquierda achica. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke (pt, mm…).

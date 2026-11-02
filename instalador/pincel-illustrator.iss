@@ -37,7 +37,7 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Messages]
 WelcomeLabel2=Con este atajo cambiás el tamaño del pincel en Illustrator manteniendo Shift + Alt y moviendo el mouse, como en Photoshop.%n%nNo hace falta instalar nada más ni tener permisos de administrador.
-FinishedLabel=Ya está instalado.%n%nAbrí un documento en Illustrator, apretá Shift, después Alt, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica.%n%nSumando Ctrl cambia de a 1, y sumando Bloq Mayús, de a 0,5, en la unidad del Stroke. Apretando A durante el gesto, cambiás entre pt y mm.%n%nPara cambiar la sensibilidad o esas teclas, hacé doble clic en el ícono verde con una H, junto al reloj (a veces está bajo la flechita).
+FinishedLabel=Ya está instalado.%n%nAbrí un documento en Illustrator, apretá Shift, después Alt, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica.%n%nSumando Ctrl cambia de a 1, y sumando Bloq Mayús, de a 0,5, en la unidad del Stroke. Apretando A durante el gesto, cambiás entre pt y mm.%n%nLas velocidades quedan de fábrica. Podés cambiarlas con el botón de abajo o, más adelante, con doble clic en la H verde junto al reloj.
 
 [Tasks]
 Name: "arranque"; Description: "Arrancar el atajo con Windows (recomendado)"
@@ -56,8 +56,6 @@ Name: "{autoprograms}\{#Nombre}"; Filename: "{app}\{#Exe}"
 Name: "{userstartup}\{#Nombre}"; Filename: "{app}\{#Exe}"; Parameters: "/arranque"; Tasks: arranque
 
 [Run]
-; El simulador de velocidad es un paso de la instalación: sigue al cerrar la ventana
-Filename: "{app}\{#Exe}"; Parameters: "/configurar"; StatusMsg: "Elegí la velocidad en la ventana que se abrió. Al cerrarla, sigue la instalación."; Check: not WizardSilent
 Filename: "{app}\{#Exe}"; Parameters: "/arranque"; Description: "Activar el atajo ahora"; Flags: nowait postinstall
 
 [UninstallDelete]
@@ -65,6 +63,38 @@ Filename: "{app}\{#Exe}"; Parameters: "/arranque"; Description: "Activar el ataj
 Type: files; Name: "{app}\pincel.ini"
 
 [Code]
+var
+  BotonSensibilidad: TNewButton;
+
+// Opcional: quien no lo toca queda con los valores de fábrica. Se termina al cerrar la ventana de ajustes.
+procedure AbrirSensibilidad(Sender: TObject);
+var
+  Codigo: Integer;
+begin
+  Exec(ExpandConstant('{app}\{#Exe}'), '/configurar', '', SW_SHOWNORMAL, ewWaitUntilTerminated, Codigo);
+end;
+
+procedure InitializeWizard;
+begin
+  BotonSensibilidad := TNewButton.Create(WizardForm);
+  BotonSensibilidad.Parent := WizardForm.FinishedPage;
+  BotonSensibilidad.Caption := 'Cambiar la sensibilidad (opcional)';
+  BotonSensibilidad.Width := ScaleX(240);
+  BotonSensibilidad.Height := WizardForm.NextButton.Height;
+  BotonSensibilidad.OnClick := @AbrirSensibilidad;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpFinished then
+  begin
+    // La lista viene mucho más alta que su única opción: sin achicarla, el botón queda fuera de la página
+    WizardForm.RunList.Height := ScaleY(24);
+    BotonSensibilidad.Left := WizardForm.RunList.Left;
+    BotonSensibilidad.Top := WizardForm.RunList.Top + WizardForm.RunList.Height + ScaleY(4);
+  end;
+end;
+
 // Para poder reemplazar o borrar el .exe. Va por nombre exacto: no toca otros scripts de AutoHotkey de la persona.
 procedure CerrarAtajo;
 var

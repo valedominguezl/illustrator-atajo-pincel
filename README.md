@@ -11,7 +11,7 @@ Solo para Windows 10 u 11 de 64 bits.
 1. **[Bajá el instalador](https://github.com/valedominguezl/illustrator-atajo-pincel/releases/latest/download/Instalar-Atajo-de-Pincel.exe)** y abrilo.
 2. Si aparece «Windows protegió su PC», tocá **Más información** y después **Ejecutar de todos modos**. El aviso sale porque el instalador no tiene firma digital, un certificado pago. Más abajo explicamos de dónde sale.
 3. Seguí el asistente. Te pregunta **si el atajo arranca con Windows**: dejalo tildado para no tener que abrirlo cada vez.
-4. Durante la instalación se abre una ventana para **probar la velocidad**. Con esa ventana al frente, apretá Shift, después Alt, y mové el mouse. Ajustá a tu gusto y tocá **Guardar**. Después podés volver a cambiarla cuando quieras.
+4. Listo: queda con las velocidades de fábrica. Si querés probarlas, en la última pantalla tocá **Cambiar la sensibilidad (opcional)**. Con esa ventana al frente, apretá Shift, después Alt, y mové el mouse. Ajustá a tu gusto y tocá **Guardar**.
 
 No hace falta instalar nada más ni tener permisos de administrador.
 

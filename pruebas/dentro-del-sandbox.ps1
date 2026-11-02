@@ -30,6 +30,10 @@ public static class W {
         return "";
     }
     public static List<string> NoResponden = new List<string>();
+    [StructLayout(LayoutKind.Sequential)] struct RECT { public int l, t, r, b; }
+    [DllImport("user32")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+    // Visible para Windows no alcanza: un control fuera de su página no se ve, pero se puede tocar por mensajes
+    public static bool EstaArribaDe(IntPtr a, IntPtr b) { RECT x, y; GetWindowRect(a, out x); GetWindowRect(b, out y); return x.b <= y.t; }
     [DllImport("user32", EntryPoint = "SendMessageTimeoutW")] static extern IntPtr SendNum(IntPtr h, uint m, IntPtr w, IntPtr l, uint f, uint ms, out IntPtr r);
     public static int Enviar(IntPtr h, uint m, int w, int l) { IntPtr r; SendNum(h, m, (IntPtr)w, (IntPtr)l, 2, 2000, out r); return (int)r; }
     public static void PonerTexto(IntPtr h, string t) { SendTexto(h, 0x0C, IntPtr.Zero, t); }
@@ -146,15 +150,24 @@ Captura '4-tareas' # sin tocar nada: la opción de arrancar con Windows tiene qu
 Tocar $w 'Siguiente*'
 Captura '5-listo'
 Tocar $w 'Instalar*'
-$simulador = Ventana '*' $nombre 30
-Comprobar 'durante la instalación se abre el simulador de velocidad' $simulador
+Start-Sleep 5
+Captura '6-fin'
+Comprobar 'el simulador no se abre solo' (-not (Ventana '*' $nombre 2))
+Comprobar 'sin tocar nada no se crea el archivo de ajustes' (-not (Test-Path $ini))
+$botones = [W]::Hijos($w) | Where-Object { [W]::Clase($_) -match 'Button' }
+$opcional = $botones | Where-Object { [W]::Texto($_) -like 'Cambiar la sensibilidad*' }
+$finalizar = $botones | Where-Object { ([W]::Texto($_) -replace '&', '') -like 'Finalizar*' }
+Comprobar 'el botón opcional se ve: queda dentro de la página' ($opcional -and $finalizar -and [W]::EstaArribaDe($opcional, $finalizar))
+Tocar $w 'Cambiar la sensibilidad*'
+$simulador = Ventana '*' $nombre 8
+Comprobar 'el botón opcional abre el simulador' $simulador
 if ($simulador) {
     Start-Sleep 1
-    Captura '5b-simulador'
+    Captura '6b-simulador'
     Tocar $simulador 'Cancelar'
+    Start-Sleep 1
 }
-Start-Sleep 3
-Captura '6-fin'
+Comprobar 'cerrarlo vuelve al final de la instalación' ((-not (Ventana '*' $nombre 2)) -and -not (Corriendo))
 Tocar $w 'Finalizar*' # si todavía está instalando, espera
 $proceso.WaitForExit(30000) | Out-Null
 Start-Sleep 2

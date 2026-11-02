@@ -32,9 +32,13 @@ $wsb = "$Resultados\prueba.wsb"
 
 Start-Process "$env:WINDIR\System32\WindowsSandbox.exe" -ArgumentList "`"$wsb`""
 $limite = (Get-Date).AddMinutes($MinutosMaximo)
-while (-not (Test-Path "$Resultados\terminado.txt")) {
-    if ((Get-Date) -gt $limite) { throw "El Sandbox no terminó en $MinutosMaximo minutos. Ver $Resultados" }
-    Start-Sleep 5
+try {
+    while (-not (Test-Path "$Resultados\terminado.txt")) {
+        if ((Get-Date) -gt $limite) { throw "El Sandbox no terminó en $MinutosMaximo minutos. Ver $Resultados" }
+        Start-Sleep 5
+    }
+} finally {
+    Get-Process WindowsSandboxRemoteSession -ErrorAction SilentlyContinue | Stop-Process -Force
 }
 Get-Content "$Resultados\informe.txt"
 if ((Get-Content "$Resultados\informe.txt") -notcontains 'FALLAS: 0') { exit 1 }

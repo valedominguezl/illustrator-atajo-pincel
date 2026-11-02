@@ -2,7 +2,36 @@
 # en la carpeta de resultados un informe y capturas de cada página del asistente. El gesto en Illustrator no se prueba acá.
 param([string]$Instalador, [string]$Resultados)
 
-Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms, System.Drawing
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+# El asistente de Inno Setup no expone botones por UI Automation: se maneja con mensajes de Windows
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class W {
+    delegate bool Cb(IntPtr h, IntPtr l);
+    [DllImport("user32")] static extern bool EnumWindows(Cb c, IntPtr l);
+    [DllImport("user32")] static extern bool EnumChildWindows(IntPtr p, Cb c, IntPtr l);
+    [DllImport("user32", CharSet = CharSet.Unicode)] static extern int GetClassNameW(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32", CharSet = CharSet.Unicode)] static extern IntPtr SendMessageW(IntPtr h, uint m, IntPtr w, StringBuilder s);
+    [DllImport("user32", CharSet = CharSet.Unicode, EntryPoint = "SendMessageW")] static extern IntPtr SendTexto(IntPtr h, uint m, IntPtr w, string s);
+    [DllImport("user32")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32")] public static extern bool PostMessageW(IntPtr h, uint m, IntPtr w, IntPtr l);
+    [DllImport("user32", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindowW(string c, string t);
+    public static string Clase(IntPtr h) { var s = new StringBuilder(256); GetClassNameW(h, s, 256); return s.ToString(); }
+    public static string Texto(IntPtr h) { var s = new StringBuilder(4096); SendMessageW(h, 0x0D, (IntPtr)4096, s); return s.ToString(); }
+    public static void PonerTexto(IntPtr h, string t) { SendTexto(h, 0x0C, IntPtr.Zero, t); }
+    static IntPtr[] Visibles(Action<Cb> enumerar) {
+        var r = new List<IntPtr>();
+        enumerar((h, l) => { if (IsWindowVisible(h)) r.Add(h); return true; });
+        return r.ToArray();
+    }
+    public static IntPtr[] Superiores() { return Visibles(c => EnumWindows(c, IntPtr.Zero)); }
+    public static IntPtr[] Hijos(IntPtr p) { return Visibles(c => EnumChildWindows(p, c, IntPtr.Zero)); }
+}
+'@
+
 $nombre = 'Atajo de pincel para Illustrator'
 $app = "$env:LOCALAPPDATA\Programs\$nombre"
 $exe = "$app\PincelIllustrator.exe"
@@ -13,13 +42,30 @@ $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{5E34
 $informe = "$Resultados\informe.txt"
 $script:fallos = 0
 
+# Un error inesperado tiene que llegar al informe: si no, afuera solo se ve que nunca termina
+trap {
+    Anotar "`nERROR en la línea $($_.InvocationInfo.ScriptLineNumber): $_"
+    Anotar 'Ventanas abiertas:'
+    foreach ($v in [W]::Superiores()) {
+        Anotar "      [$([W]::Clase($v))] $([W]::Texto($v))"
+        foreach ($h in [W]::Hijos($v)) { Anotar "          [$([W]::Clase($h))] $([W]::Texto($h))" }
+    }
+    Captura 'error'
+    Anotar 'FALLAS: prueba interrumpida'
+    'terminado' | Set-Content "$Resultados\terminado.txt"
+    exit 1
+}
+
 function Anotar($texto) { $texto | Tee-Object -FilePath $informe -Append | Out-Host }
 function Comprobar($descripcion, $condicion) {
     if ($condicion) { Anotar "OK    $descripcion" } else { Anotar "FALLA $descripcion"; $script:fallos++ }
 }
 function Corriendo { [bool](Get-Process PincelIllustrator -ErrorAction SilentlyContinue) }
 function Instalar([string[]]$argumentos) {
-    $p = Start-Process $Instalador -ArgumentList (@('/VERYSILENT', '/SUPPRESSMSGBOXES') + $argumentos) -Wait -PassThru
+    # Sin -Wait: también esperaría al atajo que el instalador deja corriendo, que nunca termina
+    $p = Start-Process $Instalador -ArgumentList (@('/VERYSILENT', '/SUPPRESSMSGBOXES') + $argumentos) -PassThru
+    $null = $p.Handle # sin esto, ExitCode queda vacío
+    if (-not $p.WaitForExit(90000)) { throw 'El instalador no terminó en 90 segundos' }
     Start-Sleep 2
     return $p.ExitCode
 }
@@ -34,7 +80,8 @@ function Foto {
     $rutas = "$env:LOCALAPPDATA\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu", "$env:USERPROFILE\Documents", "$env:USERPROFILE\Desktop"
     $archivos = Get-ChildItem $rutas -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object FullName
     $claves = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue | ForEach-Object Name
-    $general = reg query HKCU /f 'pincel' /s /k 2>$null | Where-Object { $_ -match '^HKEY' }
+    # TileProperties es una caché que el menú Inicio de Windows crea solo y cuando quiere: no la pone el instalador
+    $general = reg query HKCU /f 'pincel' /s /k 2>$null | Where-Object { $_ -match '^HKEY' -and $_ -notmatch '\\Start\\TileProperties\\' }
     return @($archivos) + @($claves) + @($general) | Sort-Object
 }
 function Captura($nombreArchivo) {
@@ -45,34 +92,30 @@ function Captura($nombreArchivo) {
     $b.Save("$Resultados\$nombreArchivo.png", [Drawing.Imaging.ImageFormat]::Png)
     $g.Dispose(); $b.Dispose()
 }
-$raiz = [Windows.Automation.AutomationElement]::RootElement
-function Buscar($elemento, $tipo, $texto) {
-    $c = New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::ControlTypeProperty), $tipo
-    foreach ($e in $elemento.FindAll([Windows.Automation.TreeScope]::Descendants, $c)) {
-        if (-not $texto -or $e.Current.Name -like $texto) { return $e }
-    }
-}
-function Ventana($titulo, $segundos = 20) {
-    $c = New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::NameProperty), $titulo
+# Ventana visible por clase o por título, esperando a que aparezca
+function Ventana($clase, $titulo = '*', $segundos = 20) {
     for ($i = 0; $i -lt $segundos * 4; $i++) {
-        foreach ($v in $raiz.FindAll([Windows.Automation.TreeScope]::Children, [Windows.Automation.Condition]::TrueCondition)) {
-            if ($v.Current.Name -like $titulo) { return $v }
+        foreach ($v in [W]::Superiores()) {
+            if ([W]::Clase($v) -like $clase -and [W]::Texto($v) -like $titulo) { return $v }
         }
         Start-Sleep -Milliseconds 250
     }
+    return $null
 }
 function Tocar($ventana, $texto) {
-    $b = Buscar $ventana ([Windows.Automation.ControlType]::Button) $texto
-    if (-not $b) { throw "No está el botón '$texto'" }
-    $b.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
-    Start-Sleep -Milliseconds 700
+    for ($i = 0; $i -lt 120; $i++) {
+        foreach ($h in [W]::Hijos($ventana)) {
+            if ([W]::Clase($h) -match 'Button' -and ([W]::Texto($h) -replace '&', '') -like $texto) {
+                [W]::PostMessageW($h, 0xF5, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null # BM_CLICK
+                Start-Sleep -Milliseconds 900
+                return
+            }
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    throw "No está el botón '$texto'"
 }
-function Campos($ventana) {
-    $c = New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::ControlTypeProperty), ([Windows.Automation.ControlType]::Edit)
-    return @($ventana.FindAll([Windows.Automation.TreeScope]::Descendants, $c))
-}
-function Escribir($campo, $valor) { $campo.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($valor) }
-function Leer($campo) { $campo.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).Current.Value }
+function Campos($ventana) { @([W]::Hijos($ventana) | Where-Object { [W]::Clase($_) -match 'Edit' }) }
 
 Anotar "Prueba: $(Get-Date -Format s)  $Instalador  SHA-256 $((Get-FileHash $Instalador).Hash)"
 
@@ -82,34 +125,33 @@ $fotoAntes = Foto
 
 Anotar "`n== Asistente: valores por defecto, validación y elección"
 $proceso = Start-Process $Instalador -PassThru
-$w = Ventana 'Instalar*'
-if (-not $w) { $w = Ventana '*Atajo de pincel*' }
+$w = Ventana 'TWizardForm'
+if (-not $w) { throw 'No apareció la ventana del asistente' }
 Start-Sleep 1
 Captura '1-bienvenida'
 Tocar $w 'Siguiente*'
 $campos = Campos $w
-Comprobar 'la página de pincel propone 5 y 400' ((Leer $campos[0]) -eq '5' -and (Leer $campos[1]) -eq '400')
+Comprobar "la página de pincel propone 5 y 400 (hay $($campos.Count) campos)" ($campos.Count -eq 2 -and [W]::Texto($campos[0]) -eq '5' -and [W]::Texto($campos[1]) -eq '400')
 Captura '2-pincel'
-Escribir $campos[0] 'abc'
+[W]::PonerTexto($campos[0], 'abc')
 Tocar $w 'Siguiente*'
-Start-Sleep 1
+$aviso = Ventana '#32770' '*' 5
+Comprobar 'un tamaño inválido muestra un aviso' $aviso
 Captura '3-error-validacion'
-[Windows.Forms.SendKeys]::SendWait('{ENTER}')
+[W]::PostMessageW($aviso, 0x10, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null # WM_CLOSE
 Start-Sleep 1
 $campos = Campos $w
-Comprobar 'un tamaño inválido no deja avanzar' ($campos.Count -ge 2 -and (Leer $campos[0]) -eq 'abc')
-Escribir $campos[0] '7,5'
-Escribir $campos[1] '300'
+Comprobar 'un tamaño inválido no deja avanzar' ($campos.Count -eq 2 -and [W]::Texto($campos[0]) -eq 'abc')
+[W]::PonerTexto($campos[0], '7,5')
+[W]::PonerTexto($campos[1], '300')
 Tocar $w 'Siguiente*'
-Captura '4-tareas'
-$tilde = Buscar $w ([Windows.Automation.ControlType]::CheckBox) 'Arrancar*'
-Comprobar 'la opción de arrancar con Windows viene tildada' ($tilde -and $tilde.GetCurrentPattern([Windows.Automation.TogglePattern]::Pattern).Current.ToggleState -eq 'On')
+Captura '4-tareas' # sin tocar nada: la opción de arrancar con Windows tiene que venir tildada
 Tocar $w 'Siguiente*'
 Captura '5-listo'
 Tocar $w 'Instalar*'
-Start-Sleep 4
+Start-Sleep 5
 Captura '6-fin'
-Tocar $w 'Finalizar*'
+Tocar $w 'Finalizar*' # si todavía está instalando, espera
 $proceso.WaitForExit(30000) | Out-Null
 Start-Sleep 2
 
@@ -118,28 +160,31 @@ Comprobar 'el .exe está instalado' (Test-Path $exe)
 Comprobar 'el atajo quedó corriendo' (Corriendo)
 Comprobar 'se guardó el pincel elegido con punto decimal (7.5)' ((Get-Content $ini) -contains 'PincelPt=7.5')
 Comprobar 'se guardó el máximo elegido (300)' ((Get-Content $ini) -contains 'MaximoPt=300')
-Comprobar 'hay acceso directo en Inicio de Windows' (Test-Path $lnkInicio)
+Comprobar 'el arranque con Windows viene tildado: hay acceso directo en Inicio' (Test-Path $lnkInicio)
 Comprobar 'hay acceso directo en el menú Inicio' (Test-Path $lnkMenu)
 $destino = (New-Object -ComObject WScript.Shell).CreateShortcut($lnkInicio).TargetPath
 Comprobar 'el acceso directo de Inicio apunta al .exe' ($destino -eq $exe)
 Comprobar 'figura en Aplicaciones instaladas' (Test-Path $uninstallKey)
-Comprobar 'no hay diálogos de error del atajo' (-not (Ventana 'PincelIllustrator*' 1))
+Comprobar 'no hay diálogos de error del atajo' (-not (Ventana '*' 'PincelIllustrator*' 1))
 
 Anotar "`n== El .exe lee el .ini y se puede cambiar desde la bandeja"
-Add-Type -Namespace Win -Name Api -MemberDefinition '[DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern IntPtr FindWindowW(string c, string t); [DllImport("user32.dll")] public static extern bool PostMessageW(IntPtr h, uint m, IntPtr w, IntPtr l);'
-# Mensaje que el ícono de la bandeja le manda al atajo con doble clic (el tray no se puede tocar por automatización)
-$oculta = [Win.Api]::FindWindowW('AutoHotkey', $null)
-[Win.Api]::PostMessageW($oculta, 0x404, [IntPtr]::Zero, [IntPtr]0x203) | Out-Null
-$v = Ventana 'Atajo de pincel' 8
-Comprobar 'el doble clic abre el pedido de tamaño' ($v)
+# Mensaje que el ícono de la bandeja le manda al atajo con doble clic
+$oculta = [W]::FindWindowW('AutoHotkey', [NullString]::Value)
+Anotar "      ventana oculta del atajo: $oculta '$([W]::Texto($oculta))'"
+[W]::PostMessageW($oculta, 0x404, [IntPtr]0x404, [IntPtr]0x203) | Out-Null
+$v = Ventana '*' 'Atajo de pincel' 8
+Comprobar 'el doble clic abre el pedido de tamaño' $v
+if (-not $v) {
+    Captura '7-sin-pedido'
+    foreach ($x in [W]::Superiores()) { Anotar "      [$([W]::Clase($x))] $([W]::Texto($x))" }
+}
 if ($v) {
-    Comprobar 'muestra el 7.5 que leyó del .ini' ((Leer (Campos $v)[0]) -eq '7.5')
-    Start-Sleep 1
+    Comprobar 'muestra el 7.5 que leyó del .ini' ([W]::Texto((Campos $v)[0]) -eq '7.5')
     Captura '7-bandeja'
-    Escribir (Campos $v)[0] '9,25'
+    [W]::PonerTexto((Campos $v)[0], '9,25')
     Tocar $v 'OK'
-    $v = Ventana 'Atajo de pincel' 5
-    Comprobar 'muestra el 300 que leyó del .ini' ((Leer (Campos $v)[0]) -eq '300')
+    $v = Ventana '*' 'Atajo de pincel' 5
+    Comprobar 'muestra el 300 que leyó del .ini' ([W]::Texto((Campos $v)[0]) -eq '300')
     Tocar $v 'OK'
     Start-Sleep 1
     Comprobar 'guardó el cambio con punto decimal (9.25)' ((Get-Content $ini) -match 'PincelPt=9.25')
@@ -187,7 +232,10 @@ Stop-Process -Name PincelIllustrator -Force -ErrorAction SilentlyContinue
 Add-Content $ini 'Extra=1'
 $codigo = Desinstalar
 Comprobar "el desinstalador termina bien (código $codigo)" ($codigo -eq 0)
-Comprobar 'tampoco queda nada' (-not (Test-Path $app) -and -not (Compare-Object $fotoAntes (Foto)))
+$diferencias = Compare-Object $fotoAntes (Foto)
+Comprobar 'tampoco queda nada' (-not (Test-Path $app) -and -not $diferencias)
+$diferencias | ForEach-Object { Anotar "      $($_.SideIndicator) $($_.InputObject)" }
+if (Test-Path $app) { Get-ChildItem $app -Force | ForEach-Object { Anotar "      queda en la carpeta: $($_.Name)" } }
 
 Anotar "`nFALLAS: $script:fallos"
 'terminado' | Set-Content "$Resultados\terminado.txt"

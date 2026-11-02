@@ -78,6 +78,8 @@ Abrí **Configuración → Aplicaciones → Aplicaciones instaladas**, buscá **
 
 **El tamaño salta el doble o el círculo parpadea.** Probablemente hay dos copias reaccionando a la vez. Pasa si antes usabas el script suelto `pincel-illustrator.ahk`: cerralo desde su ícono junto al reloj y sacá su acceso directo de la carpeta de Inicio (`Win + R`, escribí `shell:startup`).
 
+**El mouse quedó quieto y no se suelta.** Soltá Shift y Alt, o apretá **Esc**: el atajo suelta el mouse. Igual lo suelta solo a los 20 segundos. Si aun así sigue quieto, apretá **Ctrl + Alt + Supr** y después **Esc**: Windows lo libera. Contanos cómo pasó [acá](https://github.com/valedominguezl/illustrator-atajo-pincel/issues).
+
 **El antivirus borra o bloquea el instalador.** A veces marcan por error a los programas hechos con AutoHotkey. Podés revisar el archivo en [VirusTotal](https://www.virustotal.com/) y, si confiás en él, permitirlo en tu antivirus.
 
 ¿Otra cosa? [Contanos acá](https://github.com/valedominguezl/illustrator-atajo-pincel/issues).

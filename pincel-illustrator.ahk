@@ -15,6 +15,8 @@ BASE_LIBRE := 24     ; movimiento por cada paso con sensibilidad 50
 BASE_FIJO := 240     ; lo mismo con los pasos de 1 y 0,5: más lento, para poder frenar en el valor justo
 FACTOR := 1.03       ; cada paso libre agranda/achica un 3 % (fino en tamaños chicos, rápido en grandes)
 MAXIMO_STROKE := 400 ; tope del Stroke, en pt
+TOPE_GESTO := 20000  ; ms: pasado esto, el gesto termina solo y suelta el mouse
+TOPE_ESPERA := 10000 ; ms: lo que se esperan las teclas sueltas antes de devolvérselas a Windows
 ARCHIVO_INI := A_ScriptDir "\pincel.ini"
 ; Teclas que se pueden elegir: nombre en pantalla y nombre para AutoHotkey. Shift y Alt quedan afuera: son el gesto.
 TECLAS := Map("Ctrl", "Control", "Bloq Mayús", "CapsLock", "Tab", "Tab", "Espacio", "Space")
@@ -29,6 +31,7 @@ UNIDADES := Map(0, [72, "in"], 1, [72 / 25.4, "mm"], 2, [1, "pt"], 3, [12, "pc"]
 ; Diagnóstico: solo registra si ya existe este archivo, que el instalador no crea
 REGISTRO := A_Temp "\pincel-atajo.log"
 ajustando := false
+armado := true ; el gesto empieza una vez por cada vez que se aprietan Shift y Alt
 avisoPincel := ""
 movido := 0
 ultimoAbsoluto := ""
@@ -46,6 +49,7 @@ A_TrayMenu.Add("Salir", Salir)
 A_TrayMenu.Default := "Ajustes…"
 ajustes := LeerAjustes()
 AplicarAjustes()
+OnExit(AlSalir)
 ; El arranque con Windows y el final del instalador pasan /arranque: abrirlo a mano muestra los ajustes, así se ve que anda.
 if !(A_Args.Length && A_Args[1] = "/arranque")
     AbrirAjustes()
@@ -56,9 +60,7 @@ if !(A_Args.Length && A_Args[1] = "/arranque")
 *RShift::
 *LAlt::
 *RAlt:: return
-; Solo en la ventana principal: con un diálogo abierto, Illustrator no responde hasta cerrarlo.
-; Alt+arrastrar mientras dibujás es de Illustrator (cerrar el trazo)
-#HotIf (WinActive("ahk_class illustrator ahk_exe Illustrator.exe") || EnSimulador()) && !GetKeyState("LButton", "P")
+#HotIf PuedeEmpezar()
 +LAlt::
 +RAlt::
 !LShift::
@@ -69,19 +71,21 @@ Ajustar() {
     global ajustando, movido, ultimoAbsoluto, simAncho, simUnidad, avisoPincel
     if ajustando
         return
+    ; Mantenidas, Shift y Alt se repiten: sin esto, el gesto volvería a empezar al soltar un arrastre con las teclas apretadas
+    Desarmar()
     Anotar("inicio " A_ThisHotkey " " TeclasLogicas())
     simulando := EnSimulador()
     datos := []
     if simulando
         datos := [simAncho, simUnidad]
-    else if IllustratorResponde() {
+    else if IllustratorLibre() {
         try {
             ai := ComObjActive("Illustrator.Application")
             datos := StrSplit(ai.DoJavaScript("app.documents.length ? app.activeDocument.defaultStrokeWidth + '|' + app.preferences.getIntegerPreference('strokeUnits') + '|' + app.activeDocument.pathItems.length : ''"), "|")
         } catch as e
             Anotar("error al leer: " e.Message)
     } else
-        Anotar("Illustrator no responde")
+        Anotar("Illustrator no responde o está ocupado")
     if datos.Length < 2 {
         DevolverAlt()
         return
@@ -92,71 +96,141 @@ Ajustar() {
     ; lo vuelve a ese estado). No se puede forzar sin dibujar: un clic automático con borrado hizo cerrar Illustrator.
     avisoPincel := datos.Length >= 3 && datos[3] = 0 ? "Documento vacío: el pincel toma este tamaño después de tu primer trazo" : ""
     ajustando := true
-    ; Si Alt llegó antes que Shift, se lo retira a Illustrator para que vuelva la vista previa
-    SoltarTeclas(["LAlt", "RAlt"])
-    CoordMode "Mouse", "Screen"
-    CoordMode "ToolTip", "Screen"
-    MouseGetPos &x0, &y0
-    Etiqueta(ancho, 0, unidad, x0, y0)
-    movido := 0, ultimoAbsoluto := "", modo := 0, seSolto := true
-    unidadApretada := GetKeyState(ajustes["TeclaUnidad"], "P")
-    EscucharMouse(true)
-    BlockInput "MouseMove" ; el cursor queda quieto (antes temblaba al devolverlo a su lugar) y el movimiento se lee crudo
-    while GetKeyState("Shift", "P") && GetKeyState("Alt", "P") {
-        if GetKeyState("LButton", "P") { ; Shift + Alt + arrastrar es de Illustrator: se le devuelve Alt
-            seSolto := false
-            break
-        }
-        ; Solo al apretarla: mantenida se repite y alternaría sin parar
-        estaApretada := GetKeyState(ajustes["TeclaUnidad"], "P")
-        cambio := estaApretada && !unidadApretada
-        unidadApretada := estaApretada
-        if cambio {
-            nueva := unidad[2] = "mm" ? 2 : 1
-            if simulando {
-                simUnidad := nueva
-                unidad := UNIDADES[nueva]
-                movido := 0
-                Etiqueta(ancho, modo, unidad, x0, y0)
-            } else if IllustratorResponde()
-                try {
-                    ai.DoJavaScript("app.preferences.setIntegerPreference('strokeUnits', " nueva ")")
-                    unidad := UNIDADES[nueva]
-                    movido := 0
+    fin := "" ; por qué terminó, si no fue por soltar Shift o Alt
+    try {
+        ; Si Alt llegó antes que Shift, se lo retira a Illustrator para que vuelva la vista previa
+        SoltarTeclas(["LAlt", "RAlt"])
+        CoordMode "Mouse", "Screen"
+        CoordMode "ToolTip", "Screen"
+        MouseGetPos &x0, &y0
+        Etiqueta(ancho, 0, unidad, x0, y0)
+        movido := 0, ultimoAbsoluto := "", modo := 0
+        unidadApretada := GetKeyState(ajustes["TeclaUnidad"], "P")
+        limite := A_TickCount + TOPE_GESTO
+        try {
+            EscucharMouse(true)
+            Congelar(x0, y0)
+            while GetKeyState("Shift", "P") && GetKeyState("Alt", "P") {
+                if BotonApretado() { ; Shift + Alt + arrastrar es de Illustrator (copiar, escalar desde el centro)
+                    fin := "mouse"
+                    break
+                }
+                if GetKeyState("Escape", "P") {
+                    fin := "Esc"
+                    break
+                }
+                if A_TickCount > limite {
+                    fin := "tope"
+                    break
+                }
+                ; Solo al apretarla: mantenida se repite y alternaría sin parar
+                estaApretada := GetKeyState(ajustes["TeclaUnidad"], "P")
+                cambio := estaApretada && !unidadApretada
+                unidadApretada := estaApretada
+                if cambio {
+                    nueva := unidad[2] = "mm" ? 2 : 1
+                    if simulando {
+                        simUnidad := nueva
+                        unidad := UNIDADES[nueva]
+                        movido := 0
+                        Etiqueta(ancho, modo, unidad, x0, y0)
+                    } else if IllustratorLibre() {
+                        try {
+                            ai.DoJavaScript("app.preferences.setIntegerPreference('strokeUnits', " nueva ")")
+                            unidad := UNIDADES[nueva]
+                            movido := 0
+                            Etiqueta(ancho, modo, unidad, x0, y0)
+                        }
+                    }
+                }
+                nuevoModo := GetKeyState(ajustes["TeclaMedioPaso"], "P") ? 0.5 : GetKeyState(ajustes["TeclaUnPaso"], "P") ? 1 : 0
+                if (nuevoModo != modo) {
+                    modo := nuevoModo, movido := 0
                     Etiqueta(ancho, modo, unidad, x0, y0)
                 }
+                porPaso := MovimientoPorPaso(modo)
+                pasos := movido > 0 ? Floor(movido / porPaso) : -Floor(-movido / porPaso)
+                if pasos {
+                    movido -= pasos * porPaso
+                    ancho := SiguienteAncho(ancho, pasos, modo, unidad[1])
+                    Etiqueta(ancho, modo, unidad, x0, y0)
+                    if simulando {
+                        simAncho := ancho
+                        DibujarSimulador()
+                    } else if IllustratorLibre() {
+                        try ai.DoJavaScript("app.activeDocument.defaultStrokeWidth = " ancho)
+                    }
+                }
+                Sleep 5
+            }
+        } finally {
+            Descongelar()
+            EscucharMouse(false)
+            ToolTip
         }
-        nuevoModo := GetKeyState(ajustes["TeclaMedioPaso"], "P") ? 0.5 : GetKeyState(ajustes["TeclaUnPaso"], "P") ? 1 : 0
-        if (nuevoModo != modo) {
-            modo := nuevoModo, movido := 0
-            Etiqueta(ancho, modo, unidad, x0, y0)
+        if fin = "mouse"
+            DevolverAlt()
+        else {
+            ; Hasta soltar todo siguen bloqueadas: si no, la tecla que queda apretada le llegaría a Illustrator al repetirse
+            limite := A_TickCount + TOPE_ESPERA
+            while AlgunaTeclaApretada() && A_TickCount < limite
+                Sleep 10
+            if AlgunaTeclaApretada()
+                SetTimer SoltarAlTerminar, 50
+            else
+                SoltarTeclas()
         }
-        porPaso := MovimientoPorPaso(modo)
-        pasos := movido > 0 ? Floor(movido / porPaso) : -Floor(-movido / porPaso)
-        if pasos {
-            movido -= pasos * porPaso
-            ancho := SiguienteAncho(ancho, pasos, modo, unidad[1])
-            Etiqueta(ancho, modo, unidad, x0, y0)
-            if simulando {
-                simAncho := ancho
-                DibujarSimulador()
-            } else if IllustratorResponde()
-                try ai.DoJavaScript("app.activeDocument.defaultStrokeWidth = " ancho)
-        }
-        Sleep 5
+    } catch as e {
+        SetTimer SoltarAlTerminar, 50
+        Anotar("error: " e.Message)
+    } finally
+        ajustando := false
+    Anotar("fin " (fin = "" ? "soltó" : fin) " " TeclasLogicas())
+}
+
+; Solo en la ventana principal: con un diálogo abierto, Illustrator no responde hasta cerrarlo. Shift + Alt con un botón
+; del mouse apretado es de Illustrator (copiar, escalar desde el centro, cerrar el trazo): si el botón se apretó con
+; las teclas ya abajo, el gesto no vuelve a empezar hasta soltarlas.
+PuedeEmpezar() {
+    if !(WinActive("ahk_class illustrator ahk_exe Illustrator.exe") || EnSimulador())
+        return false
+    if BotonApretado() {
+        Desarmar()
+        return false
     }
-    BlockInput "MouseMoveOff"
-    EscucharMouse(false)
-    ToolTip
-    if seSolto {
-        ; Hasta soltar todo siguen bloqueadas: si no, la tecla que queda apretada le llegaría a Illustrator al repetirse
-        while AlgunaTeclaApretada()
-            Sleep 10
+    return armado
+}
+
+BotonApretado() => GetKeyState("LButton", "P") || GetKeyState("RButton", "P") || GetKeyState("MButton", "P")
+
+Desarmar() {
+    global armado := false
+    SetTimer Rearmar, 50
+}
+
+Rearmar() {
+    global armado
+    if GetKeyState("Shift", "P") || GetKeyState("Alt", "P")
+        return
+    armado := true
+    SetTimer Rearmar, 0
+}
+
+; El cursor queda quieto (devolverlo a su lugar lo hacía temblar) y el movimiento se lee crudo. Es ClipCursor y no
+; BlockInput "MouseMove", que es un hook del atajo: si el atajo se colgara, Windows suelta el ClipCursor con Ctrl + Alt + Supr.
+Congelar(x, y) {
+    r := Buffer(16)
+    NumPut("int", x, "int", y, "int", x + 1, "int", y + 1, r)
+    DllCall("ClipCursor", "ptr", r)
+}
+
+Descongelar() => DllCall("ClipCursor", "ptr", 0)
+
+AlSalir(*) {
+    if ajustando {
+        Descongelar()
         SoltarTeclas()
-    } else
-        DevolverAlt()
-    ajustando := false
-    Anotar("fin soltó=" seSolto " " TeclasLogicas())
+    }
 }
 
 ; ancho en pt. modo 0: multiplica y redondea en la unidad del Stroke. modo 1 o 0.5: múltiplos de ese valor en esa unidad;
@@ -206,9 +280,22 @@ AlgunaTeclaApretada() {
     return false
 }
 
-IllustratorResponde() {
-    respondio := DllCall("SendMessageTimeout", "ptr", WinExist("ahk_class illustrator ahk_exe Illustrator.exe"), "uint", 0, "ptr", 0, "ptr", 0, "uint", 0x2, "uint", 200, "ptr*", &r := 0, "ptr") ; WM_NULL, SMTO_ABORTIFHUNG
-    return respondio != 0
+; Responde y no está en medio de un arrastre ni de un menú: ahí, una llamada por COM espera a que termine, y el atajo
+; quedaría colgado con el cursor quieto
+IllustratorLibre() {
+    if BotonApretado()
+        return false
+    ventana := WinExist("ahk_class illustrator ahk_exe Illustrator.exe")
+    if !ventana || !DllCall("SendMessageTimeout", "ptr", ventana, "uint", 0, "ptr", 0, "ptr", 0, "uint", 0x2, "uint", 200, "ptr*", &r := 0, "ptr") ; WM_NULL, SMTO_ABORTIFHUNG
+        return false
+    info := Buffer(24 + 6 * A_PtrSize, 0) ; GUITHREADINFO
+    NumPut("uint", info.Size, info)
+    if !DllCall("GetGUIThreadInfo", "uint", DllCall("GetWindowThreadProcessId", "ptr", ventana, "ptr", 0, "uint"), "ptr", info)
+        return true
+    ocupado := NumGet(info, 4, "uint") & 0x16 || NumGet(info, 8 + 2 * A_PtrSize, "ptr") ; GUI_INMOVESIZE | GUI_INMENUMODE | GUI_POPUPMENUMODE, hwndCapture
+    if ocupado
+        Anotar("Illustrator ocupado")
+    return !ocupado
 }
 
 TeclasLogicas() {

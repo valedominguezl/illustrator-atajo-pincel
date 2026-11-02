@@ -30,7 +30,7 @@ Mientras mantenés Shift + Alt, sumá otra tecla. El cambio va más lento y cae 
 |---|---|
 | Shift + Alt | Rápido, en proporción al tamaño |
 | Shift + Alt + **Ctrl** | De a 1 |
-| Shift + Alt + **Espacio** | De a 0,5 |
+| Shift + Alt + **Bloq Mayús** (con o sin Ctrl) | De a 0,5 |
 
 Los pasos van en la unidad que Illustrator usa para el Stroke, con el pincel y con cualquier otra herramienta. En mm van de a 1 mm y de a 0,5 mm; en pt, de a 1 pt y de a 0,5 pt.
 

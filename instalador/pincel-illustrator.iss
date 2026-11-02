@@ -37,7 +37,7 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Messages]
 WelcomeLabel2=Con este atajo cambiás el tamaño del pincel en Illustrator manteniendo Shift + Alt y moviendo el mouse, como en Photoshop.%n%nNo hace falta instalar nada más ni tener permisos de administrador.
-FinishedLabel=Ya está instalado.%n%nAbrí un documento en Illustrator, apretá Shift, después Alt, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica.%n%nSumando Ctrl cambia de a 1, y sumando Espacio, de a 0,5, en la unidad del Stroke. Apretando A durante el gesto, cambiás entre pt y mm.
+FinishedLabel=Ya está instalado.%n%nAbrí un documento en Illustrator, apretá Shift, después Alt, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica.%n%nSumando Ctrl cambia de a 1, y sumando Bloq Mayús, de a 0,5, en la unidad del Stroke. Apretando A durante el gesto, cambiás entre pt y mm.
 
 [Tasks]
 Name: "arranque"; Description: "Arrancar el atajo con Windows (recomendado)"

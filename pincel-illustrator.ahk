@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 ; Illustrator: Shift + Alt + mover el mouse (sin hacer clic) = tamaño del pincel, como Alt + clic derecho en Photoshop.
-; Derecha agranda, izquierda achica. Sumando Ctrl va de a 1 y sumando Espacio de a 0,5, en la unidad del Stroke (pt, mm…).
+; Derecha agranda, izquierda achica. Sumando Ctrl va de a 1 y sumando Bloq Mayús de a 0,5, en la unidad del Stroke (pt, mm…).
 ; Apretando A durante el gesto, Illustrator pasa el Stroke de pt a mm y viceversa.
 ; Cambia el grosor de trazo de lo próximo que dibujes, igual que el campo «Stroke» de arriba, y el círculo de vista
 ; previa del propio Illustrator se actualiza solo. Por eso Alt no le llega a Illustrator: lo escondería.
@@ -12,7 +12,7 @@ DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr") ; píxeles reales en l
 A_MenuMaskKey := "vkE8"
 PASO := 24           ; movimiento por cada paso
 FACTOR := 1.03       ; cada paso agranda/achica un 3 % (fino en tamaños chicos, rápido en grandes)
-PASO_FIJO := 240    ; movimiento por cada paso con Ctrl o Espacio: más lento, para poder frenar en el valor justo
+PASO_FIJO := 240    ; movimiento por cada paso con Ctrl o Bloq Mayús: más lento, para poder frenar en el valor justo
 MAXIMO_STROKE := 400 ; tope del Stroke, en pt
 ; Preferencia strokeUnits de Illustrator: puntos por unidad y nombre
 UNIDADES := Map(0, [72, "in"], 1, [72 / 25.4, "mm"], 2, [1, "pt"], 3, [12, "pc"], 4, [72 / 2.54, "cm"], 5, [72 / 101.6, "Q"], 6, [1, "px"])
@@ -35,7 +35,7 @@ A_TrayMenu.Add("Salir", (*) => ExitApp())
 *RAlt::
 *LControl::
 *RControl::
-*Space:: return
+*CapsLock:: return
 *a:: {
     global cambiarUnidad := true
 }
@@ -95,7 +95,7 @@ Ajustar() {
                     Etiqueta(ancho, modo, unidad, x0, y0)
                 }
         }
-        nuevoModo := GetKeyState("Control", "P") ? 1 : GetKeyState("Space", "P") ? 0.5 : 0
+        nuevoModo := GetKeyState("CapsLock", "P") ? 0.5 : GetKeyState("Control", "P") ? 1 : 0
         if (nuevoModo != modo) {
             modo := nuevoModo, movido := 0
             Etiqueta(ancho, modo, unidad, x0, y0)
@@ -116,7 +116,7 @@ Ajustar() {
     ToolTip
     if seSolto {
         ; Hasta soltar todo siguen bloqueadas: si no, la tecla que queda apretada le llegaría a Illustrator al repetirse
-        while GetKeyState("Shift", "P") || GetKeyState("Alt", "P") || GetKeyState("Control", "P") || GetKeyState("Space", "P")
+        while GetKeyState("Shift", "P") || GetKeyState("Alt", "P") || GetKeyState("Control", "P") || GetKeyState("CapsLock", "P")
             Sleep 10
         SoltarTeclas()
     } else
@@ -140,7 +140,7 @@ SiguienteAncho(ancho, pasos, modo, ptPorUnidad) {
 }
 
 ; Solo suelta lo que el sistema cree apretado: Alt y Shift soltados a la vez son el atajo de idioma de Windows
-SoltarTeclas(teclas := ["LShift", "RShift", "LAlt", "RAlt", "LControl", "RControl", "Space"]) {
+SoltarTeclas(teclas := ["LShift", "RShift", "LAlt", "RAlt", "LControl", "RControl"]) {
     for tecla in teclas
         if GetKeyState(tecla) {
             if InStr(tecla, "Alt")
@@ -158,7 +158,7 @@ DevolverAlt() {
 }
 
 SoltarAlTerminar() {
-    for tecla in ["Shift", "Alt", "Control", "Space"]
+    for tecla in ["Shift", "Alt", "Control", "CapsLock"]
         if GetKeyState(tecla, "P")
             return
     SetTimer SoltarAlTerminar, 0
@@ -173,7 +173,7 @@ IllustratorResponde() {
 
 TeclasLogicas() {
     s := ""
-    for tecla in ["LShift", "RShift", "LAlt", "RAlt", "LControl", "RControl", "Space"]
+    for tecla in ["LShift", "RShift", "LAlt", "RAlt", "LControl", "RControl"]
         if GetKeyState(tecla)
             s .= tecla " "
     return "abajo: [" s "]"

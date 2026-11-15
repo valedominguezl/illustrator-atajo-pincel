@@ -4,7 +4,7 @@ Cambiá el tamaño del pincel en Adobe Illustrator como en Photoshop, sin ir al 
 
 Apretá **Shift**, después **Alt**, y mové el mouse sin hacer clic: a la derecha agranda, a la izquierda achica. El círculo de vista previa de Illustrator se actualiza mientras ajustás, y al lado aparece el Stroke en pt y mm.
 
-Solo para Windows 10 u 11 de 64 bits.
+Solo para Windows 10 u 11 de 64 bits, con Illustrator 2020 o posterior. Si tenés varias versiones de Illustrator instaladas, funciona con la que tengas abierta.
 
 ## Instalar
 

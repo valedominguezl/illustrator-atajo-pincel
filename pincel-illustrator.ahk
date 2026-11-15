@@ -80,7 +80,7 @@ Ajustar() {
         datos := [simAncho, simUnidad]
     else if IllustratorLibre() {
         try {
-            ai := ComObjActive("Illustrator.Application")
+            ai := ConectarIllustrator()
             datos := StrSplit(ai.DoJavaScript("app.documents.length ? app.activeDocument.defaultStrokeWidth + '|' + app.preferences.getIntegerPreference('strokeUnits') + '|' + app.activeDocument.pathItems.length : ''"), "|")
         } catch as e
             Anotar("error al leer: " e.Message)
@@ -296,6 +296,38 @@ IllustratorLibre() {
     if ocupado
         Anotar("Illustrator ocupado")
     return !ocupado
+}
+
+; Con dos versiones instaladas, "Illustrator.Application" es la última que se instaló aunque la abierta sea otra, y
+; ComObjActive falla (0x800401E3). Se prueba primero el ProgID con versión cuyo ejecutable es el de la ventana abierta,
+; después los demás instalados y al final el genérico, y se recuerda el que contestó.
+ConectarIllustrator() {
+    static progids := Map() ; ruta de Illustrator.exe → ProgID que contestó
+    ruta := ""
+    try ruta := WinGetProcessPath("ahk_class illustrator ahk_exe Illustrator.exe")
+    if progids.Has(ruta)
+        try return ComObjActive(progids[ruta])
+    candidatos := []
+    loop 34 { ; de la versión 49 a la 16 (CS6 es la 16, 2020 la 24, 2026 la 30)
+        progid := "Illustrator.Application." (50 - A_Index)
+        try servidor := RegRead("HKCR\CLSID\" RegRead("HKCR\" progid "\CLSID") "\LocalServer32")
+        catch
+            continue
+        if ruta != "" && InStr(servidor, ruta)
+            candidatos.InsertAt(1, progid)
+        else
+            candidatos.Push(progid)
+    }
+    candidatos.Push("Illustrator.Application")
+    for progid in candidatos {
+        try {
+            ai := ComObjActive(progid)
+            progids[ruta] := progid
+            Anotar("conecta con " progid " (" ruta ")")
+            return ai
+        }
+    }
+    throw Error("Illustrator no aparece por COM (probados: " candidatos.Length ")")
 }
 
 TeclasLogicas() {
